@@ -35,3 +35,7 @@ skill 本體就是 `SKILL.md`，不綁 Claude。Codex／Gemini 直接讀它照�
 ## 授權
 
 MIT © 林亞澤
+
+---
+
+[GitHub](https://github.com/yazelin) · [Facebook](https://www.facebook.com/yaze.lin.gm) · [請亞澤喝咖啡](https://buymeacoffee.com/yazelin) · [亞澤的部落格](https://yazelin.github.io/)
