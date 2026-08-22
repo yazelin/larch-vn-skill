@@ -1,0 +1,184 @@
+---
+name: larch-vn
+description: 在 Larch 平台做視覺小說。要建專案、上素材、建角色與表情、排場景與立繪演出、設標題畫面的時候用。內含平台實際欄位與踩過的坑，avoid 從零猜。
+---
+
+# Larch 視覺小說
+
+平台在 `https://larch.yapiflow.com`，agent REST 在 `/api/agent/projects/…`，
+金鑰放 `~/.config/larch/key`（chmod 600，**絕對不要寫進專案、卡片、匯出檔或 repo**）。
+
+底下所有欄位與可用值都是**從平台前端 bundle 與市集上已發佈的四個作品實測出來的**，
+不是猜的。skill 官方文件沒有這些。
+
+## 先做這件事：去讀別人的專案
+
+```bash
+curl -s "https://larch.yapiflow.com/api/marketplace/<發佈id>?play=1" -o mk.json
+```
+
+**不用登入**，回的是完整專案 JSON。市集網址長這樣：
+`https://larch.yapiflow.com/play/market/<發佈id>`。
+
+這是目前最有用的資料來源。要做什麼演出、不確定欄位怎麼填，就去撈一份人家的來看。
+
+## 卡片
+
+外層 `{id, type:"story", position:{x,y}, data:{…}}`，**真正的型別在 `data.type`**。
+實際用得到的：`scene`／`dialogue`／`choice`／`input`／`miniGame`／`aiStory`／`plugin`。
+
+### 對話卡
+
+```jsonc
+{"type":"dialogue", "title":"…", "speaker":"格莉奇", "characterId":"character-…",
+ "text":"第一句", "emotion":"開心",
+ "dialogueLines":[{"id":"l0","speaker":"A","text":"…","emotion":"…"}, …],
+ "stage":{"actors":[…]}, "characterLayers":[…],
+ "transition":"fade", "transitionMs":320,
+ "background":"…", "bgm":"…", "visualEffect":"rain"}
+```
+
+- **`dialogueLines` 一張卡裝一整段來回對話。** 沒有它，兩個人鬥嘴就變成點十次滑鼠。
+- **`transition` 是掛在對話卡上的**，不是只有場景卡。`background` 與 `bgm` 也可以。
+- 播放器的取值是 `dialogueLines?.length ? dialogueLines : [{speaker, text, emotion}]`。
+
+### 舞台 `stage.actors[]`
+
+```jsonc
+{"id":"…", "url":"<立繪圖>", "name":"格莉奇", "slot":"center",
+ "scale":0.96, "offsetX":0, "offsetY":0,
+ "enter":"fade", "loop":"breathe", "loopSpeed":1, "loopStrength":1}
+```
+
+| 欄位 | 可用值（實測） |
+|---|---|
+| `slot` | `farLeft` `left` `center` `right` `farRight` |
+| `enter` | `fade` `zoom` `spring` `bounce` `blur` `glide` `riseUp` `swoopIn` `walkInLeft` `arcLeft` `arcRight` `slideLeft` `slideRight` `slideDown` |
+| `loop` | `breathe` `nod` `sway` `shiver` `hop` `pulse` `none` |
+| `scale` | 實際作品都在 **0.90–1.04** |
+| `offsetX` / `offsetY` | 實際作品都在 **±11 / ±9**。**單位不是像素** |
+
+**`loop` 不填的立繪就是一張不會動的貼圖。** 別人的作品幾乎每個角色都掛 `breathe`。
+
+**要把小圖（頭像那種）擺在角落，不要靠 offset。** 那兩個的單位是小數，填 300 會直接推出畫面。
+做法是**把定位做進圖裡**：開一張跟立繪同尺寸的透明畫布，小圖擺在要的位置，
+然後 `scale:1, offset:0`。
+
+`characterLayers`（舊欄位，`{position,x,y,scale,opacity,flipX}`）編輯器某些地方還在讀，
+兩個都寫最安全。**不要用 `flipX`**：不對稱的記號（單邊耳飾、胸前徽章）會鏡射到另一邊。
+
+### 場景卡
+
+```jsonc
+{"type":"scene", "title":"…", "text":"…", "background":"…",
+ "transition":"fadeBlack", "transitionMs":600,
+ "visualEffect":"snow", "bgm":"…", "bgmVolume":0.22, "bgmLoop":true, "start":true}
+```
+
+`transition`：`fade` `wipeLeft` `wipeRight` `blurCut` `flash` `irisIn` `fadeBlack` `none`（一般 260–420ms）
+`visualEffect`：`rain` `snow` `embers` `flash` `stars3d` `petals` `vignette` `speedLines` `fog` `shake` `none`
+
+### 旁白
+
+**旁白要做成一個角色**（沒有 `portraitUrl` 的角色，`role` 填「旁白」），
+卡片照樣帶 `speaker:"旁白"` 與 `characterId`。
+
+`speaker` 留空字串是沒驗過的狀態，編輯器裡看起來像沒填完。
+
+## 素材
+
+```jsonc
+POST /media  {"name":"x.png", "mimeType":"image/png", "base64":"…", "category":"character"}
+```
+
+**`category` 一定要帶**：`scene` 場景／`character` 立繪／`prop` 道具。
+不帶的話全部掉進「道具」，角色工坊也不會認。回 `{asset:{id,name,type,url,category}}`，
+上限 50MB。道具＝可以獨立擺上場的圖（頭像、物件）。
+
+## 角色
+
+```jsonc
+POST /characters  {"characterId":"character-…",   // 更新要用這個
+                   "name","role","summary","backstory","personality","speakingStyle","secrets",
+                   "portraitUrl":"…",
+                   "expressions":[{"name":"開心","emotion":"開心","imageUrl":"…"}]}
+```
+
+- **更新要帶 `characterId`。傳 `id` 會變成新增一個重複角色。**
+- 只覆蓋你傳的欄位，其餘保留。
+- 差分實際只存 `{id,name,emotion,imageUrl}`。卡片的 `emotion` 要對得到 `expressions` 的
+  `emotion`，播放器才換得了臉。
+- `secrets` 是「知道但不主動說」，**發佈到市集時會被拿掉**（所以別人的專案裡看不到）。
+- **不要用整包 `PUT /projects/:id` 寫角色**：寫得進去，可是角色工坊那一頁不見得認。
+
+## 專案設定
+
+```jsonc
+titleScreenEnabled: true
+titleScreen: {frame:"film"|null, frameColor, bgm, bgmVolume, layers:[…]}
+titleCoverShade / titleCoverPositionX / titleCoverPositionY
+projectThumbnail            // 市集與列表的縮圖
+dialogueUi: {preset, presentation:"gradient", fontFamily, fontSize, nameFontSize,
+             textColor, speakerColor, accentColor, borderColor,
+             panelColor, panelOpacity, panelWidth, panelPadding, borderRadius, backdropBlur}
+cgGalleryEnabled / cgGallerySource:"picked" / cgGalleryItems:[{url,title}]
+cursorMode:"custom" / cursorImage / cursorSize / cursorHotspotX / cursorHotspotY
+cursorEffects: {effects:["squash","tilt","ripple","trail","particles"], …}
+stageFit:"auto" / keepActorsInFrame / textSpeed / typingEffect / autoAdvanceDelay
+resolution: {width:1920, height:1080}
+```
+
+### 標題畫面的兩個坑
+
+**一、按鈕是 layer，不會自己出現。** 只放文字層的話畫面上一個按鈕都沒有：
+
+```jsonc
+{"id":"action-start",    "kind":"button", "action":"start",    "icon":true, "x":…,"y":…,"size":…,"width":…}
+{"id":"action-continue", "kind":"button", "action":"continue", …}
+{"id":"action-gallery",  "kind":"button", "action":"gallery",  …}
+{"id":"languages",       "kind":"language", "x":…,"y":…,"size":…}
+{"id":"name",            "kind":"text", "role":"title",       …}   // eyebrow / title / description
+```
+
+`x`/`y`/`width` 是畫面百分比。
+
+**二、標題畫面吃的是第一張卡的背景**，不是 `projectThumbnail`。所以：
+
+| | 放什麼 |
+|---|---|
+| 第一張卡的背景 | 乾淨的封面。**不要把標題燒在圖上**，文字是 layer 畫的 |
+| `projectThumbnail` | 有標題的那張，縮圖要自己站得住 |
+
+## 專案本身
+
+- `POST /projects` 建得了新專案（201）。
+- **`DELETE /projects/:id` 回 404，agent API 刪不掉專案。** 要清只能把 `boards`／
+  `variables` 清空，空殼還會留在列表上。
+- 整包 `PUT /projects/:id` 適合改板子與設定。
+- **不要用「有沒有被引用」去清孤兒素材。** 判斷當下角色欄位可能還沒寫進去，
+  會把還在用的立繪整組刪掉。要清就同名去重，並且以自己那份 assets.json 為準。
+
+## 條件分支（如果要做）
+
+`edge.data.condition = {kind:"variable", variable, op:"eq|neq|gt|gte|lt|lte", value}`。
+同一個出口可以拉多條線：有條件的先判，第一條**無條件**的當預設。
+
+**`POST /nodes` 會把 `edge.data.condition` 整個丟掉，而且依 `(source, sourceHandle)` 去重**，
+所以有條件分支一律走整包 `PUT /projects/:id`。而且不會報錯，要驗才看得出來。
+
+## 一定要有的檢查
+
+線性的東西也會壞。每次推完至少驗這些：
+
+- 邊的來源／目標存在
+- 沒有入邊的孤島、沒有出邊的死路（**刻意的終點要自己標記**，否則分不出來）
+- 空的對話卡（會變成要點掉的空白框）
+- `characterId` 對得到角色、立繪圖層有 url、場景卡有背景
+- 線性的板子不該有分岔
+
+有條件分支的話還要寫一支帶變數狀態的模擬器：照 `set`/`add` 更新變數、照條件挑邊，
+才驗得出哪些卡實際走不到。單純的可達性檢查抓不到。
+
+## 授權
+
+MIT © 林亞澤
