@@ -149,6 +149,22 @@ resolution: {width:1920, height:1080}
 | 第一張卡的背景 | 乾淨的封面。**不要把標題燒在圖上**，文字是 layer 畫的 |
 | `projectThumbnail` | 有標題的那張，縮圖要自己站得住 |
 
+## 匯出的單檔 HTML 沒有聲音
+
+匯出的播放器那道閘是：
+
+    if (d.voiceMode && d.voiceMode!=='off' && d.voiceMode!=='realtime') playVoice(...)
+
+它讀**卡片層**的 `d.voiceMode`。可是**卡片上自己寫的 voiceMode 會被匯出程序丟掉**
+（雲端存得下，匯出的 JSON 裡是 0 個）——匯出時是從 `project.languages[].voiceMode`
+複製到每張卡的。所以要設的是**專案的語言**，不是卡片：
+
+    project.languages = [{"code": "zh-Hant", "label": "繁體中文", "voiceMode": "shared"}]
+
+**線上播放器不看這個欄位**，所以會出現「線上七百句都正常、匯出版一句都不播、
+而且完全不報錯」。實測排除過：音檔沒進去（1345 筆內嵌音訊、索引全在表內）、
+MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（背景樂同機制正常）。
+
 ## 發佈
 
 **市集發佈的是快照，不是即時鏡像。** 按下發佈那一刻的內容被凍結起來，
