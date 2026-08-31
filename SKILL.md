@@ -5,7 +5,7 @@ description: 在 Larch 平台做視覺小說。要建專案、上素材、建角
 
 # Larch 視覺小說
 
-平台在 `https://larch.yapiflow.com`，agent REST 在 `/api/agent/projects/…`，
+平台在 `https://larch.ink`（2026-08 從 larch.yapiflow.com 搬過來，舊網域回 308 導向：GET 跟得過去，**POST／PUT 不行**，urllib 不跟 308），agent REST 在 `/api/agent/projects/…`，
 金鑰放 `~/.config/larch/key`（chmod 600，**絕對不要寫進專案、卡片、匯出檔或 repo**）。
 
 底下所有欄位與可用值都是**從平台前端 bundle 與市集上已發佈的四個作品實測出來的**，
@@ -14,11 +14,11 @@ description: 在 Larch 平台做視覺小說。要建專案、上素材、建角
 ## 先做這件事：去讀別人的專案
 
 ```bash
-curl -s "https://larch.yapiflow.com/api/marketplace/<發佈id>?play=1" -o mk.json
+curl -s "https://larch.ink/api/marketplace/<發佈id>?play=1" -o mk.json
 ```
 
 **不用登入**，回的是完整專案 JSON。市集網址長這樣：
-`https://larch.yapiflow.com/play/market/<發佈id>`。
+`https://larch.ink/play/market/<發佈id>`。
 
 這是目前最有用的資料來源。要做什麼演出、不確定欄位怎麼填，就去撈一份人家的來看。
 

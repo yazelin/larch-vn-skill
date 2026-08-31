@@ -1,6 +1,6 @@
 # larch-vn
 
-在 [Larch](https://larch.yapiflow.com) 平台做視覺小說的 Claude Code skill。
+在 [Larch](https://larch.ink) 平台做視覺小說的 Claude Code skill。
 
 裡面是**實測出來的平台格式**：卡片欄位、舞台與立繪動畫、轉場與畫面特效、
 素材分類、角色與表情差分、標題畫面的按鈕怎麼長出來、以及一串踩過的坑。
@@ -14,7 +14,7 @@
 後來發現市集上已發佈的作品可以直接抓下來讀：
 
 ```bash
-curl -s "https://larch.yapiflow.com/api/marketplace/<發佈id>?play=1" -o mk.json
+curl -s "https://larch.ink/api/marketplace/<發佈id>?play=1" -o mk.json
 ```
 
 不用登入，回完整專案 JSON。這支 skill 就是讀了四個作品之後整理出來的。
