@@ -9,7 +9,39 @@ description: 在 Larch 平台做視覺小說。要建專案、上素材、建角
 金鑰放 `~/.config/larch/key`（chmod 600，**絕對不要寫進專案、卡片、匯出檔或 repo**）。
 
 底下所有欄位與可用值都是**從平台前端 bundle 與市集上已發佈的四個作品實測出來的**，
-不是猜的。skill 官方文件沒有這些。
+不是猜的。
+
+**端點清單要以官方那份為準。** 作者在 larch.ink 的「帳號設定 → AI 輔助 → 產生並複製完整
+Larch Skill」按一次，會拿到一份含全部 MCP 工具與 REST 路徑的操作說明（那份會**內嵌一把
+Agent Key**，所以它是機密，不要貼進對話、repo 或卡片）。這份 skill 補的是那份沒寫的東西：
+欄位實際長什麼樣、哪幾支會靜默寫壞資料、演出的數字要抓多少。
+
+REST 全表（2026-09-01 對過）：
+
+    GET  /api/agent/resolve/:id
+    GET|POST                /api/agent/projects
+    GET|PUT                 /api/agent/projects/:id
+    GET                     /api/agent/projects/:id/boards
+    GET|PUT|DELETE          /api/agent/projects/:id/boards/:boardId
+    POST|DELETE             /api/agent/projects/:id/nodes
+    POST                    /api/agent/projects/:id/story/generate
+    POST                    /api/agent/projects/:id/images/generate
+    POST|PUT|DELETE         /api/agent/projects/:id/media
+    GET|POST                /api/agent/projects/:id/characters
+    DELETE                  /api/agent/projects/:id/characters/:characterId
+    POST                    /api/agent/projects/:id/characters/:characterId/art
+    POST                    /api/agent/projects/:id/voice/generate
+    GET                     /api/agent/voices
+    GET                     /api/agent/projects/:id/versions
+    POST                    /api/agent/projects/:id/versions/:versionId/restore
+    GET                     /api/agent/projects/:id/export
+    GET                     /api/agent/projects/:id/preview
+    POST|DELETE             /api/agent/projects/:id/publish
+    POST                    /api/agent/projects/:id/share-link
+    GET|PUT|DELETE          /api/agent/asset-packs/:packId
+
+金鑰的權限是分項的（讀取／編輯／素材／AI 生成／匯出／版本／預覽／發佈），
+在同一頁勾。**403 說少了某個 scope 是設定問題，不是 bug**，請作者去開那個開關，不要繞路。
 
 ## 先做這件事：去讀別人的專案
 
@@ -110,6 +142,24 @@ POST /characters  {"characterId":"character-…",   // 更新要用這個
   `emotion`，播放器才換得了臉。
 - `secrets` 是「知道但不主動說」，**發佈到市集時會被拿掉**（所以別人的專案裡看不到）。
 - **不要用整包 `PUT /projects/:id` 寫角色**：寫得進去，可是角色工坊那一頁不見得認。
+- **`expressions` 是附加不是覆蓋。** 送一份新清單過去，舊的差分不會消失，兩份會並存。
+  帶**相同的 `id`**，或**相同的 `name` 加 `kind`**，才會就地取代那一張。
+  送 `"expressions": []` 不會清空（回 200，內容原封不動）。
+- `summary` 撞名：它同時是角色的一句話摘要與這次修改的稽核標籤。
+  想寫「補齊背景故事」當標籤，結果會把角色的摘要蓋成那六個字。要嘛送摘要本身，要嘛不送。
+- 三個角色的文字欄位分工（官方寫作要求）：`personality` 寫價值觀與反射動作不是形容詞串、
+  `speakingStyle` 要具體到用字節奏與情緒怎麼洩漏、`secrets` 寫真正的秘密內容
+  （runtime 當成「知道但不主動說」，寫暗示等於沒寫）、`systemPrompt` 留白。
+
+**差分可以叫 API 產**：`POST /projects/:id/characters/:characterId/art`，
+body 是 `{"kind":"expression"|"outfit"|"pose","variants":[{"name":…,"prompt":…}]}`，
+一次最多 8 組，角色要先有 `portraitUrl` 當身份基準，回應裡逐項看 `failures`。
+成功的會同時寫進差分清單與專案素材。**這支吃 Larch 的 AI 點數**
+（網頁上同一個動作標示每張最多 7 點），所以有自己的生圖工具就先用自己的，
+產完透明 PNG 走 `POST /media` 上傳再掛回角色。
+
+（`/api/akarion/ai/image`、`/character-expression`、`/remove-background` 是網頁前端在打的，
+那三支**只吃 Google 登入 cookie**，agent 金鑰一律 401。agent 要生圖走上面那支 `/art`。）
 
 ## 專案設定
 
@@ -171,9 +221,11 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 之後改專案、重建章節、換素材，市集上那一份都不會跟著變——要再發佈一次。
 實測：發佈後改了片尾卡的網址，市集版本仍是舊的，而且沒有任何提示。
 
-**播放器要 Google 登入，但市集的公開作品不用。** `/play/market/<發佈id>`
-在無痕視窗打得開也玩得到，`/api/marketplace/<發佈id>?play=1` 不帶權杖也拿得到
-整包資料。所以用 agent API 做東西的人看不到自己的成果，發佈之後才看得到。
+**正式播放器要 Google 登入，但市集的公開作品不用。** `/play/market/<發佈id>`
+在無痕視窗打得開也玩得到，`/api/marketplace/<發佈id>?play=1` 不帶權杖也拿得到整包資料。
+
+要給人玩但還不想上架，用 `POST /projects/:id/share-link`（固定網址，再打一次會刷新成當下版本）。
+自己要看成果用下面那支預覽，不要為了看一眼就去發佈。
 
 ## 專案本身
 
@@ -185,6 +237,10 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
   而且回應裡沒有任何錯誤字樣。2026-09-01 實測踩過一次。
 - 就算包對了，整包 PUT 仍然會**依 `(source, sourceHandle)` 去重**，同一個出口的多條分支只留一條。
   所以它不能拿來寫條件分支，見下面那一節。
+- **版本救得回來。** `GET /projects/:id/versions` 列出來，
+  `POST /projects/:id/versions/:versionId/restore` 還原。
+  （`GET /versions/:id` 是 404，所以讀不到單一版本的內容，只能直接還原下去。）
+  即使如此，動手前還是先抓一份自己的快照，因為還原也是一次寫入。
 - **不要用「有沒有被引用」去清孤兒素材。** 判斷當下角色欄位可能還沒寫進去，
   會把還在用的立繪整組刪掉。要清就同名去重，並且以自己那份 assets.json 為準。
 
@@ -204,22 +260,26 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 整包 `PUT /projects/:id` 不行：它會去重掉分支。`POST /nodes` 也不行：它會把
 `edge.data.condition` 整個丟掉。兩個都不報錯。
 
-## 做一支本地預覽
+## 看實際畫面：免登入預覽
 
-**播放器要 Google 登入才玩得到，所以用 agent API 做東西的人看不到自己做的成果。**
-不要靠猜。在本機照同樣的數字合成一張 1920×1080：背景、每個 actor 照 `slot` 與 `scale`
-貼上去、底部畫一條照 `dialogueUi` 的對話框。
+**這是驗收的唯一方法，讀 JSON 讀回來不算看過。**
 
-精準度到不了像素級，可是「頭貼太低」「立繪整組偏小」「臉朝畫面外」這種問題一眼就看得出來。
-我在有這支工具之前改了四輪都沒改對。
+    GET /api/agent/projects/:id/preview?boardId=&cardId=&hours=
 
-`slot` 對到的水平位置大約是：
+回 `{url, playUrl, boardUrl, expiresAt}`。不用登入，金鑰本身就是通行證。
 
-    farLeft .12   left .28   center .5   right .72   farRight .88
+- `playUrl`：從起點卡開始播，玩家看到什麼就是什麼。
+- **帶 `cardId` 只播那一張**，剛改完一張卡要看效果就用這個，最快。
+- `boardUrl`（`?view=board`）：整張白板的地圖，看結構與接線用，不是看畫面用。
 
-**對話框要抓 45%，不是 30%。** `presentation:"gradient"` 會往上暈開，
-實際遮到的高度比面板本身高很多。我用 30% 模擬，結果做出來的東西在真的播放器裡
-被蓋住，可是預覽看起來好好的。寧可抓過頭。
+網址讀的是當下的專案，所以改完重新整理就好，不必每次重開一條。
+預設 24 小時到期（`hours` 最多 168），唯讀，金鑰一停用就失效。
+**這條連結是私人的，不是拿給玩家的那條**（那條走 `share-link`）。
+
+演出的數字對照（在有預覽之前是靠本機合成猜的，現在可以直接看，但這些仍然管用）：
+
+    slot 的水平位置   farLeft .12   left .28   center .5   right .72   farRight .88
+    對話框遮住的高度   抓 45%，不是 30%（presentation:"gradient" 會往上暈開）
 
 ## 立繪的朝向
 
