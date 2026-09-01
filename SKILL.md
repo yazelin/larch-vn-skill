@@ -57,7 +57,8 @@ curl -s "https://larch.ink/api/marketplace/<發佈id>?play=1" -o mk.json
 ## 卡片
 
 外層 `{id, type:"story", position:{x,y}, data:{…}}`，**真正的型別在 `data.type`**。
-實際用得到的：`scene`／`dialogue`／`choice`／`input`／`miniGame`／`aiStory`／`plugin`。
+官方列的全部型別：`dialogue`／`choice`／`event`／`scene`／`input`／`aiDialogue`／`aiStory`／
+`miniGame`／`setVariable`／`boardJump`／`group`，另外還有作者裝的 `plugin` 卡。
 
 ### 對話卡
 
@@ -251,6 +252,10 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 
 **`POST /nodes` 會把 `edge.data.condition` 整個丟掉，而且依 `(source, sourceHandle)` 去重**，
 而且不會報錯，要驗才看得出來。
+
+官方文件另外寫了一條規則：**「一個出口 handle 最多接一個目標，伺服器留最新的那條。」**
+可是實測用整張白板覆蓋推六條同出口的條件邊，六條全部留著、條件也在。
+所以那條規則講的是 `POST /nodes` 那種增量寫入，不是整張覆蓋。**兩種都要自己驗**。
 
 **寫版子只有一條正確的路：`PUT /projects/:id/boards/:boardId`**，body 是
 `{"name":…, "nodes":[…], "edges":[…], "summary":"一句話交代改了什麼"}`。
