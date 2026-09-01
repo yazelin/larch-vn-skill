@@ -180,7 +180,11 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 - `POST /projects` 建得了新專案（201）。
 - **`DELETE /projects/:id` 回 404，agent API 刪不掉專案。** 要清只能把 `boards`／
   `variables` 清空，空殼還會留在列表上。
-- 整包 `PUT /projects/:id` 適合改板子與設定。
+- **`PUT /projects/:id` 的 body 一定要包一層 `{"project": {…}}`。** 不包的話伺服器回 `200`，
+  然後把整個專案寫成空的：boards、characters、media、variables、settings 全部不見，
+  而且回應裡沒有任何錯誤字樣。2026-09-01 實測踩過一次。
+- 就算包對了，整包 PUT 仍然會**依 `(source, sourceHandle)` 去重**，同一個出口的多條分支只留一條。
+  所以它不能拿來寫條件分支，見下面那一節。
 - **不要用「有沒有被引用」去清孤兒素材。** 判斷當下角色欄位可能還沒寫進去，
   會把還在用的立繪整組刪掉。要清就同名去重，並且以自己那份 assets.json 為準。
 
@@ -190,7 +194,15 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 同一個出口可以拉多條線：有條件的先判，第一條**無條件**的當預設。
 
 **`POST /nodes` 會把 `edge.data.condition` 整個丟掉，而且依 `(source, sourceHandle)` 去重**，
-所以有條件分支一律走整包 `PUT /projects/:id`。而且不會報錯，要驗才看得出來。
+而且不會報錯，要驗才看得出來。
+
+**寫版子只有一條正確的路：`PUT /projects/:id/boards/:boardId`**，body 是
+`{"name":…, "nodes":[…], "edges":[…], "summary":"一句話交代改了什麼"}`。
+這是平台自己的 agent 提示詞寫的做法（bundle 的 `assets/agentPrompts-*.js` 裡有全文），
+整張白板覆蓋，條件與同出口多條邊都保得住。只改名字就不要送 `nodes`／`edges`。
+
+整包 `PUT /projects/:id` 不行：它會去重掉分支。`POST /nodes` 也不行：它會把
+`edge.data.condition` 整個丟掉。兩個都不報錯。
 
 ## 做一支本地預覽
 
@@ -231,6 +243,20 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 
 改完素材一定要：**重新上傳 → 更新 assets.json → 重建板子 → 從伺服器讀回來驗**。
 驗的方法是把卡片指到的網址抓下來看，不要看本機檔案。
+
+## 動手前先把整包抓下來
+
+```bash
+curl -s -H "Authorization: Bearer $KEY" \
+  "https://larch.ink/api/agent/projects/<專案ID>" -o snapshot.json
+```
+
+寫壞了就靠這份還原（`PUT /projects/:id`，body 包 `{"project": <snapshot>}`）。
+`GET /projects/:id/versions` 列得出伺服器留的版本，**但沒有讀單一版本的端點**
+（`/versions/<id>` 回 404），所以伺服器的版本救不回內容，只有自己的快照救得回來。
+
+還有一件事：**作者的瀏覽器開著編輯器的時候會把它自己的狀態推上來。**
+還原完發現內容跟快照對不起來，先確認是不是有人正在編輯，不要急著再寫一次。
 
 ## 一定要有的檢查
 
