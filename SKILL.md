@@ -327,6 +327,30 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 `document.querySelector('iframe').getBoundingClientRect()` 推算。
 （`open-bag` 是例外，它畫在主文件裡，可以直接用 DOM 點。）
 
+**那個 iframe 是整個視窗寬**，量到的是 `{x:0, y:0, w:1280, h:512}`，不是視覺上
+那張置中的白卡片。照卡片邊界估比例會整片偏掉——文字打得進輸入框、按鈕卻點不到，
+因為錯的 x 落在按鈕右邊的空白處。一定要實際量一次再換算。
+
+插件改版會挪動版面（多一排選項縮圖就往下推近 0.1），所以座標要跟著插件版本重量。
+
+## BGM
+
+`bgm` / `bgmVolume` / `bgmLoop` 三個欄位，對話卡與場景卡都吃。
+
+- **只在換曲點寫 `bgm`**。沒寫的卡片會**延續**前一首，不是停。
+- **要靜音得掛一段真的無聲音軌**。給空字串會被當成「沒設」，音樂照樣繼續播。
+  一段五秒的無聲 mp3 只有 20 KB：
+  `ffmpeg -f lavfi -i anullsrc=r=44100:cl=mono -t 5 -b:a 32k silence.mp3`
+- 音訊走 `POST /media`，`mimeType: "audio/mpeg"`、`category: "audio"`。
+- 有配音的話音量壓在 **0.24–0.32**，再高會蓋掉台詞。
+- 播放器用 `<audio>` 元素播，所以換曲可以自動驗：每步比對
+  `[...document.querySelectorAll('audio')].filter(x=>/bgm-/.test(x.src))`，
+  變了就印一行，走一趟就知道有沒有錯位。
+
+音樂本身要能循環：從原曲切一段、把尾巴交叉淡接回開頭，響度正規化**一定要用
+two-pass**（`measured_*` + `linear=true`）。單次 `loudnorm` 是動態的，會在頭尾加
+不同增益，反而把接縫弄壞。
+
 ## 條件分支（如果要做）
 
 `edge.data.condition = {kind:"variable", variable, op:"eq|neq|gt|gte|lt|lte", value}`。
