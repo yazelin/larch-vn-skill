@@ -279,6 +279,48 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 - **不要用「有沒有被引用」去清孤兒素材。** 判斷當下角色欄位可能還沒寫進去，
   會把還在用的立繪整組刪掉。要清就同名去重，並且以自己那份 assets.json 為準。
 
+## 插件卡
+
+專案設定的 `settings.plugins` 決定哪些插件開著（`{"larch-inventory": {"enabled": true}, …}`）。
+`GET /api/plugins` 列的是市集上架的那些（有作者掛名）；`larch-` 前綴的是平台內建，
+不在那份清單裡，單獨查會回「找不到插件」。
+
+卡片外層是 `data.type = "plugin"`，實際是哪一張看 `pluginCardId`。**整份 `pluginHtml`
+存在卡片裡**，所以要改配色就直接換它 CSS 的色值（插件本身通常沒開放配色設定）。
+
+### 背包（`larch-inventory`，兩張卡）
+
+```jsonc
+// pluginCardId: "grant-item"  — 全螢幕演出「獲得道具」,畫面暗下來、中間一個圓形道具徽章
+{"bagVar":"inventory", "countVar":"inventoryCount",
+ "itemName":"一壺清水", "itemCount":1, "itemNote":"桃林深處那口小泉打的。",
+ "itemImage":"<透明 PNG 的網址>",      // 空的話會顯示預設方塊圖示,這是唯一的視覺設定
+ "itemId":"water", "consumable":true, "hideAfterCollect":true,
+ "effectKind":"none", "effectValue":"", "effectVar":"", "storyNodeId":""}
+
+// pluginCardId: "open-bag"    — 列出道具,玩家挑一件才繼續
+{"title":"行囊", "bagVar":"inventory", "pickVar":"inventoryLastUsed",
+ "consume":true, "allowSkip":false, "emptyText":"行囊是空的。"}
+```
+
+- 兩張靠 `bagVar` 串起來，預設變數是 `inventory`（字串，內容是 JSON 陣列）。
+  `countVar` 指到的變數會同步件數，HUD 右上角那顆「背包 N」就是它。
+- `open-bag` 的 `pickVar`（預設 `inventoryLastUsed`）記下玩家挑了哪一件，
+  可以拿去做條件分支。`consume:true` 會把道具用掉。
+- 元素 id：`grant-item` 只有一顆 `#go`；`open-bag` 有 `#grid`（道具格）、`#skip`
+  （什麼都不拿）、`#go`（使用）。**要先點道具再按使用**。
+- 用法上最順的是「取得的地方各自給不同的 `itemNote`」：三條分支各拿一壺水、
+  備註寫成各自的來源，玩家打開行囊就看得到自己走過哪一條。
+
+### 這些卡都在 sandbox iframe 裡
+
+`srcdoc` + `sandbox="allow-scripts"`，opaque origin。**拿不到麥克風**（見
+[[reference-larch-plugin-sandbox-no-mic]]），開發者協定也**進不去它的執行環境**：
+`Runtime.evaluate` 帶 contextId 或 uniqueContextId 都找不到，`Page.getFrameTree`
+也看不到那個 frame。要自動化測試只能送 CDP 的真實滑鼠鍵盤事件，座標從外層量
+`document.querySelector('iframe').getBoundingClientRect()` 推算。
+（`open-bag` 是例外，它畫在主文件裡，可以直接用 DOM 點。）
+
 ## 條件分支（如果要做）
 
 `edge.data.condition = {kind:"variable", variable, op:"eq|neq|gt|gte|lt|lte", value}`。
