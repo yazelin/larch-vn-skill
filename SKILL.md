@@ -200,6 +200,20 @@ resolution: {width:1920, height:1080}
 | 第一張卡的背景 | 乾淨的封面。**不要把標題燒在圖上**，文字是 layer 畫的 |
 | `projectThumbnail` | 有標題的那張，縮圖要自己站得住 |
 
+## 語音的兩道閘要分開設
+
+**線上播放器只看卡片的 `data.voiceMode`；匯出的單檔版只看 `project.languages[].voiceMode`。**
+兩邊各要各的，設一邊另一邊一定不會響。
+
+- 線上沒聲音 → 卡片的 `voiceMode` 是 `off`。`POST /voice/generate` 會把那張卡設成 `ai`，
+  所以配完就會自己打開；但**用腳本重推版子的時候如果寫死 `voiceMode: "off"`，
+  會把全部配好的語音一次關掉**，而且音檔還在、完全不報錯。2026-09-01 踩過。
+- 匯出版沒聲音 → 見下一節。
+
+腳本重推版子還有一個更貴的坑：**`dialogueLines` 重組會把每一句的 `voiceUrl` 洗掉**。
+配一次兩百句要一個多小時，洗掉就白做。重推時要用 `(nodeId, lineIndex, text)` 當鍵，
+把伺服器上的 `voiceUrl` 帶回來；文字改過的那句才需要重配。
+
 ## 匯出的單檔 HTML 沒有聲音
 
 匯出的播放器那道閘是：
