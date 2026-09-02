@@ -378,6 +378,15 @@ two-pass**（`measured_*` + `linear=true`）。單次 `loudnorm` 是動態的，
 解法是取得卡的 **`storyNodeId`（使用後前往卡片）**：指到那個道具真正該用的劇情卡，
 玩家提前使用就直接跳過去接上劇情，不會卡住。
 
+**這個目標是跟著道具走的**，存在背包資料裡那件道具的 `t` 欄位，不是全域設定，所以別的
+道具不受影響。反過來說，複製一件道具去新的故事、或被 remix 走的時候，它會繼續指向舊的
+卡片 id —— 那張卡在新板子上多半不存在。**沿用道具就要記得改掉或清空這個欄位。**
+
+`open-bag` 這張卡**沒有 iframe**，UI 是平台的背包彈窗接管的。它在對話框裡留下的
+`.preview-minigame` 區塊（背景 `#111`，寬度跟著對話框、高度受 `textOverflow:"grow"`
+影響）沒辦法用「把 iframe 設透明」的老方法消掉，`pluginPresentation:"fullscreen"`
+對它也沒有作用（2026-09-02 實測）。只能改對話框本身的尺寸。
+
 ## 條件分支（如果要做）
 
 `edge.data.condition = {kind:"variable", variable, op:"eq|neq|gt|gte|lt|lte", value}`。
