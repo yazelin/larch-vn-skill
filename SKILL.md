@@ -148,8 +148,11 @@ POST /characters  {"characterId":"character-…",   // 更新要用這個
 
 - **更新要帶 `characterId`。傳 `id` 會變成新增一個重複角色。**
 - 只覆蓋你傳的欄位，其餘保留。
-- 差分實際只存 `{id,name,emotion,imageUrl}`。卡片的 `emotion` 要對得到 `expressions` 的
-  `emotion`，播放器才換得了臉。
+- 差分實際只存 `{id,name,emotion,imageUrl}`。**但是預覽播放器不做表情切換**（2026-09-02
+  實測）：卡片層與 `dialogueLines[].emotion` 都對得到 `expressions`，畫面上的立繪照樣不換，
+  actor 補 `characterId` 也沒用。**要換表情就切卡**：在表情變的那一句把卡切開，
+  把那張卡 `stage.actors[].url` 直接指到差分圖。切出來的卡不帶 `transition`，
+  actor 一樣掛 `enter:"fade"`，播起來就是 0.1 秒的自然換臉。
 - `secrets` 是「知道但不主動說」，**發佈到市集時會被拿掉**（所以別人的專案裡看不到）。
 - **不要用整包 `PUT /projects/:id` 寫角色**：寫得進去，可是角色工坊那一頁不見得認。
 - **`expressions` 是附加不是覆蓋。** 送一份新清單過去，舊的差分不會消失，兩份會並存。
@@ -211,7 +214,8 @@ resolution: {width:1920, height:1080}
 {"id":"name",            "kind":"text", "role":"title",       …}   // eyebrow / title / description
 ```
 
-`x`/`y`/`width` 是畫面百分比。
+`x`/`y`/`width` 是畫面百分比，`size` 也是（字級）：標題約 6.5–8、內文 1.2–1.35、
+按鈕 `size:1.25, width:19`。照 px 填（如 64）會撐爆整個畫面。
 
 **二、標題畫面吃的是第一張卡的背景**，不是 `projectThumbnail`。所以：
 
@@ -271,7 +275,10 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
   然後把整個專案寫成空的：boards、characters、media、variables、settings 全部不見，
   而且回應裡沒有任何錯誤字樣。2026-09-01 實測踩過一次。
 - **就算包對了，它還是會把版子清空。** body 裡根本沒有 `boards`／`nodes`／`edges` 也一樣，
-  39 張卡瞬間變 0（2026-09-02 實測）。characters、media、settings 會留著，只有版子沒了。
+  39 張卡瞬間變 0（2026-09-02 實測）。**而且「會留著」只限你有送的欄位**：同日另一次只送
+  `{name, settings, variables}`，characters、media、languages、description 全部消失，
+  播放器直接炸 `flatMap of undefined`。規則就一條：**PUT 只留你送的，boards 例外（送了也清）**。
+  所以正確做法是先 GET 整包當底、改你要改的欄位、整包 PUT 回去，
   所以要改 `settings` 這類欄位，正確做法是：**先把版子整包抓下來，`PUT` 完再用 boards
   端點原樣推回去**。推回去用抓下來那一份，不要重新組，否則語音、道具、作者手排的座標都會掉。
 - 就算包對了，整包 PUT 仍然會**依 `(source, sourceHandle)` 去重**，同一個出口的多條分支只留一條。
