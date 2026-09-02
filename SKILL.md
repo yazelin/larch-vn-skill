@@ -383,6 +383,43 @@ host 回 `{type:'larch:init', plugin, card, values, variables, assets, character
 **驗收技巧**：每次 `larch:set` 播放器都立刻寫進 `localStorage["larch-player-vars-<專案id>"]`，
 外層文件讀得到——iframe 內部讀不到沒關係，斷言下在這裡加截圖就夠。
 
+## 平台自己的 AI 怎麼被呼叫（2026-09-03 實測）
+
+**播放器內的 AI 卡**走兩支同源端點（無 Authorization header，認登入 cookie 或 guestPass）：
+
+- `POST /api/runtime/ai-dialogue`（aiDialogue 卡）body
+  `{guestPass, cardId, messages, prompt, model, exitCondition, turn, maxTurns}` 回 `{reply, done}`
+- `POST /api/runtime/ai-director`（aiStory／AI 導演）body 帶整包 `project`、`history`、
+  `exitConditions` 等，回下一步演出
+
+**guestPass 就是公開資訊**：市集頁傳 `{kind:"market", token:<發佈id>}`、分享頁同構。
+實測**免登入、curl 帶市集發佈 id 就能拿到真回覆**，連 cardId 是不是 AI 卡都不驗
+（燒的是作者的 AI 點數）。所以「發佈＝任何人都能用你的點數對話」，寫 AI 卡之前要有數。
+另：自帶 `prompt` 時回覆不一定照做，伺服器端疑似會摻專案自己的 AI 設定，未定案。
+
+**點數計價**（前端 `aiCreditPricing` chunk，單位＝AI 點數）：`runtimeDialogue: 1`／回、
+`runtimeDirector: 2`／步、`characterChat: 1`／回、生圖 muse 2･api 5･high 8、去背 2、
+影片 20、story 2、minigame 4、翻譯 20 節點/點、配音 700 字/點、故事分析 12000 字 2 點起。
+
+**遊戲端 API（Project Runtime API）**：帳號設定 → AI 輔助 → 遊戲端 API，每個專案一把
+`lpk_` Live Key，請求帶 `X-Larch-Live-Key`：
+
+- `POST /api/public/v1/projects/:id/story` `{cursor, locale, advance, choiceIndex}` — **能用**，
+  回當前卡＋`outgoing` cursor，給外部引擎（Unity）讀故事。
+- `POST …/characters/<角色名>/chat` — 端點在，但回「Register player first via
+  POST /api/v1/players」，而那條註冊路由 2026-09-03 還沒 mount（router 404）。**半上線**，
+  要用得等官方補齊或去 Discord 問。
+
+**Live Key 存在 `project.settings.liveApiKey`（明文）**，但 agent API 的 GET 會把它遮蔽成空
+（跟 `secrets` 同類保護）——讀回空字串不代表沒存。帳號頁「重新產生 Key」＝前端產 key 後
+寫 settings，**存檔可能半途而廢**（實測踩過：`liveApiEnabled:true` 進去了、key 沒進去，
+症狀是一律 `invalid_live_key`）；救法＝用 agent API 把 UI 顯示的那把 key 連同
+`liveApiConfigured:true` 補寫進 settings（整包 PUT 前先抓版子、寫完推回去）。
+
+**CORS 全關**：上面每一支的 preflight 都 403、不帶 CORS 頭，**插件 iframe（Origin: null）
+打不到**，只能從自己的 server（relay）代打。插件要吃平台 AI，現成的路是 relay 端拿
+市集 guestPass 打 `runtime/ai-dialogue`（限已發佈作品、燒作者點數、零金鑰）。
+
 ## BGM
 
 `bgm` / `bgmVolume` / `bgmLoop` 三個欄位，對話卡與場景卡都吃。
