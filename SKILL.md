@@ -371,6 +371,8 @@ host 回 `{type:'larch:init', plugin, card, values, variables, assets, character
 `/api/marketplace/<id>?play=1` 免登入回整包 JSON，玩家玩的時候 devtools 也看得到。
 要接 AI 就把金鑰放自己的中繼（Cloudflare Worker secret），卡片只知道中繼網址。
 
+**上架只能走網頁後台**：agent API 發不了插件（`POST /api/agent/plugins` 404，GET 列表可以）。
+
 **測試不用先上架**：播放器只檢查 `settings.plugins[pluginId].enabled`，pluginHtml 又存在
 卡片裡，所以自己的專案直接寫這兩處就跑得起來。fullscreen 卡會蓋整個視窗、
 `pluginSkippable:true` 時平台在右下角畫「略過」鈕。
