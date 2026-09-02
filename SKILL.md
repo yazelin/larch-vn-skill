@@ -337,6 +337,45 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 
 插件改版會挪動版面（多一排選項縮圖就往下推近 0.1），所以座標要跟著插件版本重量。
 
+## 自己做插件
+
+（實測來源：voice-input 3.1.2 的定義檔與 phone-chat spike，參考實作在 `~/larch-phone-chat`。）
+
+**定義檔**：`{id, name, version, author, pricing, icon, license, categories, description,
+permissions, cards:[…]}`。每張卡 `{id, name, description, icon, color,
+presentation:"inline"|"fullscreen", skippable, fields:[…], html}`——**整份 HTML 內嵌**。
+`fields` 是編輯器設定表單的 schema，`kind` 有八種：`text`／`longText`／`select`（帶
+`options:[{value,label}]`）／`toggle`／`number`（`min`/`max`/`step`）／`color`／
+`variable`／`asset`（帶 `assetKind:"image"`）。permissions 目前見過三個：
+`assets:read`、`flow:control`、`variables:write`。
+
+**卡片跟 host 的協定**（postMessage，`'*'`）：卡片載入先送 `{type:'larch:ready'}`，
+host 回 `{type:'larch:init', plugin, card, values, variables, assets, characters, locale}`
+（`values`＝作者在編輯器填的欄位值）。之後卡片可送 `{type:'larch:set', name, value}` 寫變數
+（值限 string/number/boolean），送 `{type:'larch:complete', result, payload}` 收卡、劇情
+沿出邊繼續。**寫變數會被卡上的 `pluginWriteVars` 閘住**，所以卡片 data 要把會寫的變數
+列進 `pluginWriteVars`（`pluginReadVars` 同理管 init 給哪些變數）。另有
+`larch:speech:start/stop/abort` 一組：host 代跑 SpeechRecognition 再把事件推回來。
+編輯器預覽不會送 init，照 voice-input 的做法設 2 秒 timeout 後用預設值自己啟動。
+
+**iframe 打得到外部 API**：larch.ink 沒設 CSP，sandbox iframe 裡的 `fetch` 只受
+目標伺服器的 CORS 管——而 iframe 是 opaque origin（`Origin: null`），所以目標要開
+`access-control-allow-origin: *`。**金鑰絕對不能放進 pluginValues**：專案發佈後
+`/api/marketplace/<id>?play=1` 免登入回整包 JSON，玩家玩的時候 devtools 也看得到。
+要接 AI 就把金鑰放自己的中繼（Cloudflare Worker secret），卡片只知道中繼網址。
+
+**測試不用先上架**：播放器只檢查 `settings.plugins[pluginId].enabled`，pluginHtml 又存在
+卡片裡，所以自己的專案直接寫這兩處就跑得起來。fullscreen 卡會蓋整個視窗、
+`pluginSkippable:true` 時平台在右下角畫「略過」鈕。
+
+**常駐 UI 沒有介面**：右上角那顆常駐 HUD 是播放器寫死給 `larch-inventory` 的
+（按鈕圖 `buttonImage`、開關 `hudEnabled` 都在 `settings.plugins["larch-inventory"].settings`），
+第三方插件只有「卡片」一種表面。要常駐入口只能拿背包道具的 `storyNodeId` 跳卡近似
+（跳走回不到原處），或跟官方提需求。
+
+**驗收技巧**：每次 `larch:set` 播放器都立刻寫進 `localStorage["larch-player-vars-<專案id>"]`，
+外層文件讀得到——iframe 內部讀不到沒關係，斷言下在這裡加截圖就夠。
+
 ## BGM
 
 `bgm` / `bgmVolume` / `bgmLoop` 三個欄位，對話卡與場景卡都吃。
