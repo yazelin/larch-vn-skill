@@ -351,10 +351,13 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 **定義檔**：`{id, name, version, author, pricing, icon, license, categories, description,
 permissions, cards:[…]}`。每張卡 `{id, name, description, icon, color,
 presentation:"inline"|"fullscreen", skippable, fields:[…], html}`——**整份 HTML 內嵌**。
-`fields` 是編輯器設定表單的 schema，`kind` 有八種：`text`／`longText`／`select`（帶
+`fields` 是編輯器設定表單的 schema，`kind` 實測有十種：`text`／`longText`／`select`（帶
 `options:[{value,label}]`）／`toggle`／`number`（`min`/`max`/`step`）／`color`／
-`variable`／`asset`（帶 `assetKind:"image"`）。permissions 目前見過三個：
+`variable`／`asset`（帶 `assetKind`）／`character`（回角色 id）／`storyCard`（回卡片 id，
+從編輯器欄位渲染器挖出來的）。permissions 目前見過三個：
 `assets:read`、`flow:control`、`variables:write`。
+**`asset` 欄位選音訊會破圖**：編輯器對所有 asset 都用 `<img>` 畫左側縮圖，
+選 mp3 就是一格空圖——cosmetic bug，下拉選單與實際功能正常，插件端無解。
 
 **卡片跟 host 的協定**（postMessage，`'*'`）：卡片載入先送 `{type:'larch:ready'}`，
 host 回 `{type:'larch:init', plugin, card, values, variables, assets, characters, locale}`
