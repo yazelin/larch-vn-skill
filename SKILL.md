@@ -202,6 +202,11 @@ stageFit:"auto" / keepActorsInFrame / textSpeed / typingEffect / autoAdvanceDela
 resolution: {width:1920, height:1080}
 ```
 
+**`stageFit` 不設,手機直式就毀了。** 預設（null）會把 1920×1080 舞台照 16:9 塞進直式
+畫面：立繪縮成底部一條約 180px 高的窄帶、大半躲在對話框後面。設 `stageFit:"auto"`
+（配 `keepActorsInFrame:false`）立繪才會放大貼滿直式畫面，slot 的水平比例兩種模式都對。
+新專案一律直接設，桌機畫面不受影響（2026-09-03 桃園實測，比對格莉奇修好的）。
+
 ### 標題畫面的兩個坑
 
 **一、按鈕是 layer，不會自己出現。** 只放文字層的話畫面上一個按鈕都沒有：
