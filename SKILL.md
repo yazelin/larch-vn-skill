@@ -393,6 +393,13 @@ host 回 `{type:'larch:init', plugin, card, values, variables, assets, character
 **驗收技巧**：每次 `larch:set` 播放器都立刻寫進 `localStorage["larch-player-vars-<專案id>"]`，
 外層文件讀得到——iframe 內部讀不到沒關係，斷言下在這裡加截圖就夠。
 
+**驗手機版不要用 raw CDP**：`Emulation.setDeviceMetricsOverride(mobile:true)` 之後，
+滑鼠與觸控事件都打不進插件的 sandbox iframe（桌面模擬同一套就正常；elementFromPoint
+指著 IFRAME、焦點也對，事件就是進不去，2026-09-03 實測）。改用 Playwright
+（`playwright-core`＋`executablePath` 指 ms-playwright 快取即可，不用抓瀏覽器）
+＋`devices['iPhone 13']`——而且它的 `frameLocator('iframe')` **能直接選到
+opaque origin iframe 裡的元素**（fill/tap 照常），連桌面驗收都可以不用再算座標。
+
 ## 平台自己的 AI 怎麼被呼叫（2026-09-03 實測）
 
 **播放器內的 AI 卡**走兩支同源端點（無 Authorization header，認登入 cookie 或 guestPass）：
