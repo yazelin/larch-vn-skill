@@ -286,17 +286,21 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 那份照舊(2026-09-04 實測);要更新得在 `POST /publish` 的 body 直接給
 `{"description": "..."}`(title/tags 同理)。
 
-**更新說明只有發佈那一刻寫得進去，事後改不了，而且 agent API 根本不吃。**
-`POST /publish` 的 body 試過 `note`、`notes`、`updateNote`、`releaseNote`、`changelog`、
-`changeLog`、`versionNote`、`message`、`updateMessage`、`log` 十個欄位名，全部被靜默忽略，
-市集 updateLog 那一則照樣留白（2026-09-04 實測）。`description` / `title` / `tags` 這幾個
-在同一個 body 裡是吃的，所以不是 body 整個被丟掉，就是這一格另有名字。
-**所以要有更新說明的版本，就從 larch.ink 的編輯器發佈**，那裡有欄位可以填。
+**更新說明填不進 agent API,但補得回來。** `POST /publish`(agent)試過 `note`、`notes`、
+`updateNote`、`releaseNote`、`changelog`、`changeLog`、`versionNote`、`message`、
+`updateMessage`、`log` 十個欄位名,全部被靜默忽略(2026-09-04 實測)。網頁編輯器走的是
+另一組端點:
 
-**而且 updateLog 沒有唯讀端點**：`/publish` 只有 POST 與 DELETE，市集那邊
-`/api/market/...`、`/agent/games/...` 全是 404。想看日誌只能看發佈回應——
-為了看一眼就重跑一次發佈，會每次多發一版（實測那次多發了五版）。
-發佈回應要整包存檔再讀，資料包在 `game` 底下，`releaseNumber` 不在頂層。
+    POST  /api/marketplace                                 body 含 version 與 updateNote
+    PATCH /api/marketplace/<gameId>/releases/<releaseId>   body {version, note}
+
+**PATCH 那支改的是「過去的」更新日誌**,所以漏填的版本事後補得回來(UI 在發佈對話框
+第 ⑤ 區「版本與更新日誌(選填)」,回應訊息是「過去的更新日誌已儲存」)。
+**但這兩支只認 Google 登入 cookie,agent 金鑰一律 401**,所以補說明只能在網頁上做。
+
+**而且 updateLog 沒有唯讀端點**:agent 的 `/publish` 只有 POST 與 DELETE。想看日誌只能看
+發佈回應——為了看一眼就重跑一次發佈,會每次多發一版(實測那次多發了五版)。發佈回應要
+整包存檔再讀,資料包在 `game` 底下,`releaseNumber` 不在頂層。
 
 **市集發佈的是快照，不是即時鏡像。** 按下發佈那一刻的內容被凍結起來，
 之後改專案、重建章節、換素材，市集上那一份都不會跟著變——要再發佈一次。
