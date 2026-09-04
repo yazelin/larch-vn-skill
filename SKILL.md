@@ -312,6 +312,12 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 
 ## 發佈
 
+**探測端點只能用 GET。** `POST /api/agent/projects/:id/publish` 送空 body 會回 200——
+**那一下就是真的發佈出去了**。想知道某支寫入端點在不在，用 GET 打同一條路徑看是
+404 還是 405，或者去 bundle 裡 grep。對假專案 POST 會回 403「找不到專案或沒有存取權限」，
+所以「有回應」不代表「只是問問」。（2026-09-04 踩過，誤發了一版到市集。）
+
+
 **市集的標題/簡介欄位不跟 `project.description` 走。** 改了專案簡介再發佈,市集
 那份照舊(2026-09-04 實測);要更新得在 `POST /publish` 的 body 直接給
 `{"description": "..."}`(title/tags 同理)。
@@ -380,6 +386,33 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 
 卡片外層是 `data.type = "plugin"`，實際是哪一張看 `pluginCardId`。**整份 `pluginHtml`
 存在卡片裡**，所以要改配色就直接換它 CSS 的色值（插件本身通常沒開放配色設定）。
+
+### 插件卡可以透明了（2026-09-04 官方修好）
+
+以前 fullscreen 的插件層是不透明深色，只能用「背景圖＝同場景圖」障眼。現在不用了：
+播放器四個 iframe 建立點都帶 `style:{background:"transparent"}`，
+外框 `vn2-configurable-frame` 的 alpha 是 0。實測量 iframe 往上每一層：
+`IFRAME rgba(0,0,0,0)` → `DIV.vn2-configurable-frame rgba(10,11,14,0)` →
+`DIV.vn-stage rgb(8,9,11)`，而場景圖是 vn-stage 的子元素、畫在插件層下面。
+
+外框吃卡片上的 `pluginFrame`：`backgroundColor`（預設 `#0a0b0e`）、
+`backgroundOpacity`、`showTitle`、`showButton`、`buttonText`。
+**`pluginPresentation:"fullscreen"` 的 `backgroundOpacity` 預設就是 0**，
+而且透明度為 0 時邊線自動變 `transparent`。所以 fullscreen 插件卡預設就是全透的。
+
+**自己的卡片 CSS 不要在收到設定之前先鋪一層紗。** 卡片載入到 `larch:init` 送達
+中間有空窗，那段時間畫上去的底色會在透明卡上變成一閃的灰。
+body 預設 `background:transparent`，壓暗等 init 到了再由 JS 補。
+
+### 存插件設定的兩個坑
+
+**一、空字串會被丟掉。** `pluginValues` 裡送 `""` 清不掉既有的值：讀回來那個鍵直接消失、
+舊值留著。要表達「不要」得送一個非空的哨兵（例如 `"none"`），卡片端自己認。
+
+**二、編輯器的色彩選擇器沒有「空」狀態。** 卡片設定開過一次，未設定的 `color` 欄位
+就被寫成 `#000000`，卡片照規則鋪一整片黑，看起來像透明壞了。
+**要能留空的欄位就不要用 `kind:"color"`，用 `kind:"text"` 讓作者填 hex 或留空。**
+（這兩條合起來讓一張全透的卡變成全黑，而且兩邊都不報錯，2026-09-04 花了很久才定位。）
 
 ### 背包（`larch-inventory`，兩張卡）
 
@@ -501,8 +534,24 @@ opaque origin iframe 裡的元素**（fill/tap 照常），連桌面驗收都可
   `exitConditions` 等，回下一步演出
 
 **guestPass 就是公開資訊**：市集頁傳 `{kind:"market", token:<發佈id>}`、分享頁同構。
-實測**免登入、curl 帶市集發佈 id 就能拿到真回覆**，連 cardId 是不是 AI 卡都不驗
-（燒的是作者的 AI 點數）。所以「發佈＝任何人都能用你的點數對話」，寫 AI 卡之前要有數。
+實測**免登入、curl 帶市集發佈 id 就能拿到真回覆**（燒的是作者的 AI 點數）。
+所以「發佈＝任何人都能用你的點數對話」，寫 AI 卡之前要有數。
+
+**2026-09-04 官方補了一道檢查，上面那句「連 cardId 是不是 AI 卡都不驗」已經過時。**
+現在 `cardId` 必須指到**該發佈快照裡真的存在的一張 `aiDialogue` 卡**，
+不然一律回 `{"error":"這個公開作品沒有授權這項 AI 操作"}`。實測四種都被擋：
+快照裡存在但不是 AI 卡的節點（場景卡、插件卡）、不存在的 id、亂打的字串。
+**錯誤訊息一模一樣，看不出缺的是哪一樣**，所以自己的中繼要先擋掉空 cardId 並講清楚。
+
+做法是在版子上放一張官方「AI 對話」卡當授權憑證：**不接任何邊，玩家永遠走不到**，
+只是讓這份作品在快照裡宣告「我要用 AI」。發佈之後拿它的節點 id 當 `cardId`。
+**發佈不會改寫節點 id**（讀 `GET /api/marketplace/by-url/<handle>/<slug>?play=1` 比對過，
+`project.nodes` 與 `project.boards[].nodes` 的 id 跟專案端一模一樣），所以 id 可以事先填好。
+
+**授權是對外開放的，這是設計不是漏洞**：那兩個 id 都能從上面那支公開端點撈到，
+而且伺服器端可以繞過任何中繼直接打 `runtime/ai-dialogue`（瀏覽器跨網域才被 403 擋）。
+只要授權卡在已發佈快照裡，任何人都能扣作者點數，**即使你自己的卡片一張都沒用它**。
+不想開放就把那張卡拿掉再發佈一次。
 另：自帶 `prompt` 時回覆不一定照做，伺服器端疑似會摻專案自己的 AI 設定，未定案。
 
 **點數計價**（前端 `aiCreditPricing` chunk，單位＝AI 點數）：`runtimeDialogue: 1`／回、
@@ -580,6 +629,18 @@ two-pass**（`measured_*` + `linear=true`）。單次 `loudnorm` 是動態的，
 
 ## 條件分支（如果要做）
 
+**選擇卡不能依變數決定選項出不出現。** 讀正式播放器 bundle 確認（2026-09-04）：
+選項是照 `data.choices` 陣列一對一畫出來的，渲染那一段沒有任何條件判斷。
+唯一會讓某一項不畫的是 `choiceHideText` 加上該項有 `choiceLinks[i].id`，
+那是圖片熱區模式（藏文字、點圖上的區域），跟變數無關。
+全播放器**只有一處在判條件**：`ll.filter(W => Lr(W.data?.condition, y) !== false)`，
+`ll` 是出邊清單。所以條件只管「選了之後往哪走」，不管「這一項要不要出現」。
+
+要做「條件不滿足的格子不出現在選單上」這種選單，**只能自己寫插件卡**。
+其他選項欄位：`choicePlacement`、`choiceShuffle`、`choiceHideText`、
+`choiceFrameImage`、`choiceMode`（branch／shared）。
+
+
 `edge.data.condition = {kind:"variable", variable, op:"eq|neq|gt|gte|lt|lte", value}`。
 同一個出口可以拉多條線：有條件的先判，第一條**無條件**的當預設。
 
@@ -597,6 +658,20 @@ two-pass**（`measured_*` + `linear=true`）。單次 `loudnorm` 是動態的，
 
 整包 `PUT /projects/:id` 不行：它會去重掉分支。`POST /nodes` 也不行：它會把
 `edge.data.condition` 整個丟掉。兩個都不報錯。
+
+## 讀官方前端 bundle（想知道平台到底怎麼判的時候）
+
+規格文件沒寫的事，直接讀播放器最快，而且是唯一不會猜錯的來源。
+
+    GET https://larch.ink/              → 抓 <script src="/assets/index-<hash>.js">
+    grep 那份 index 找 lazy chunk        → 檔名形如 Preview-<hash>.js（122 個 chunk）
+    GET /assets/Preview-<hash>.js        → 這才是播放器
+
+**index 裡會有兩個 `Preview-*.js` 候選**（另一個是 AudioPreview），逐一試哪個回 200。
+index 換版之後 chunk 的 hash 也會變，別存舊的。
+
+今天靠這條查到的：選擇卡沒有條件式選項、插件 iframe 加了 transparent、
+`pluginFrame` 有哪些欄位、`lo()` 怎麼算外框顏色與透明度。
 
 ## 看實際畫面：免登入預覽
 
