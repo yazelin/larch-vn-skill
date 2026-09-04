@@ -235,6 +235,21 @@ resolution: {width:1920, height:1080}
 | 第一張卡的背景 | 乾淨的封面。**不要把標題燒在圖上**，文字是 layer 畫的 |
 | `projectThumbnail` | 有標題的那張，縮圖要自己站得住 |
 
+## 卡型與語音支援(2026-09-04 實測)
+
+- `POST /voice/generate` body=`{nodeId, lineIndex, voiceId, emotion}`;不帶 lineIndex 時
+  對話卡配第 0 行、**scene 卡配卡片層文字**(voiceUrl 寫在 data 層,播放器會播)。
+  `setVariable` 卡回 400,而且**手動把 voiceUrl 寫進卡片層播放器也不播**——
+  過場字卡要有聲只能改成對話卡。
+- `/api/agent/voices` 預設只回 40 個英語系統音色;`?limit=200` 才會吐中文/粵語/日語全集
+  (含 tone 欄位)。MiniMax 原生 id(如 `Chinese (Mandarin)_Soft_Girl`)直接餵 voiceId 就吃。
+- **neutral tone 的音色(如 `Sincere_Adult`)句與句之間會漂**——這句成熟女聲、下句中年男聲。
+  要穩定就挑 tone=male/female 的,或把喜歡的那句 render 當參考音走本地克隆
+  (larch-vn-yori 的 voice/narrator 配方)。
+- 本地克隆的 whisper QC **比對前要簡繁歸一(opencc t2s),而且同音字要容忍**:
+  whisper 會把「每寫」寫成「沒寫」、「枝椏」寫成「之鴉」——餵只有單一讀音的替身字
+  重合成後 whisper 照樣寫錯字,證明是它的語言模型選字,不是音錯。低分先看轉錄文字再決定重抽。
+
 ## 語音的兩道閘要分開設
 
 **線上播放器只看卡片的 `data.voiceMode`；匯出的單檔版只看 `project.languages[].voiceMode`。**
