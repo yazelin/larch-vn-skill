@@ -717,6 +717,41 @@ two-pass**（`measured_*` + `linear=true`）。單次 `loudnorm` 是動態的，
 影響）沒辦法用「把 iframe 設透明」的老方法消掉，`pluginPresentation:"fullscreen"`
 對它也沒有作用（2026-09-02 實測）。只能改對話框本身的尺寸。
 
+### 2026-09-06 讀播放器程式碼補的（背包 v1.9.0）
+
+讀 `Preview-*.js`（播放器）與 `store-*.js`（插件定義）得到的，**沒有在真專案上跑過**：
+
+- 卡片有五張，不是兩張：`grant-item`、`remove-item`（移除數量 0＝全部）、`open-bag`、
+  `show-hud`、`hide-hud`。變數 `inventoryHudVisible`（`auto`／true／false）也能控 HUD。
+- **`pickVar` 寫進去的是道具名稱**（`item.name`），不是 `itemId`。略過時寫空字串，
+  另外寫 `pluginResult` 為 `used`／`skipped`。分支條件要比名稱，名稱定了就不能改。
+- **道具效果（`effectKind`：`none/set/add/subtract/toggle`）在「使用」時才套，取得時不套。**
+  「拿到某道具就設旗標」做不到，改用出邊條件的 `hasItem`／`lacksItem`（見下一節）。
+- HUD 直接「使用」一件 `storyNodeId` 空、不可消耗的道具：只寫 `inventoryLastUsed` 與效果，
+  **不換卡不跳走**。要「隨時翻開某個畫面再回來」走 interrupt 卡（下一節）。
+- 道具有使用條件三欄 `useConditionVariable / useConditionValue / useConditionMessage`，
+  不成立時按使用只跳訊息。要一件「拿著但不能用」的道具，條件設成永遠不成立，訊息就是它的台詞。
+- 同一個 `itemId` 再 `grant` 一次：件數相加、名稱／備註／圖被後來那一件覆寫。
+  要改備註不加件數，先 `remove-item` 再 `grant-item`。
+- 道具 JSON 短鍵：`id, n(名稱), i(圖), d(備註), q(件數), c(可消耗), e, v, x(效果), t(storyNodeId)`，
+  解析也吃長鍵與純字串。專案變數有 `defaultValue`，所以開場道具可以直接寫在 `inventory` 的預設值裡
+  （播放器開場讀不讀預設值，要在真專案上確認一次）。
+
+### 2026-09-06 在真播放器上驗過的（調查篇新專案）
+
+- **變數 `defaultValue` 播放器開場真的讀**：`inventory` 預設值寫成道具 JSON，HUD 一開就顯示「背包 2」。
+- **HUD 用一件 `storyNodeId` 空、效果 `set open_notes=true` 的道具 → interrupt 卡（條件 `open_notes == true`，
+  `interruptOnce:false`，出口 `return`）→ 接一張 miniGame → 卡片 `larch:set open_notes=false` 再 complete →
+  回到原本那張卡的同一行。** 這條路整段實測通，是「隨時翻開再回來」的正解。
+- **插件卡完成後要玩家再按「套用結果並繼續」**，除非卡片 `miniGameFrame:{showButton:false}`，
+  那時播放器在 `larch:complete` 之後 240ms 自己接下一張。
+- **場景卡沒有字會停著等點**。`autoAdvance:{enabled:true, mode:"delay", delayMs:500}` 讓它轉場完自己走
+  （scene 與 dialogue 都吃這個欄位）。
+- `miniGameReadVars` 空的時候 init 送過去的 variables 是**空物件**，不是全部；要讀什麼就列什麼。
+- 同一出口多條有條件的邊 + 一條無條件的預設邊，用 `PUT /boards/:id` 推 113 條回讀 113 條，
+  路由照「有條件先判、無條件當預設」走，實測正確。
+- `settings.cgGalleryEnabled` 不關掉，標題畫面會多一顆「CG 收藏 · N」把背景全當畫廊。
+
 ## 條件分支（如果要做）
 
 **選擇卡不能依變數決定選項出不出現。** 讀正式播放器 bundle 確認（2026-09-04）：
@@ -732,6 +767,14 @@ two-pass**（`measured_*` + `linear=true`）。單次 `loudnorm` 是動態的，
 
 
 `edge.data.condition = {kind:"variable", variable, op:"eq|neq|gt|gte|lt|lte", value}`。
+`op` 另外有 **`hasItem`／`lacksItem`**：`variable` 填背包變數（預設 `inventory`），`value` 填道具 id，
+判包包裡有沒有那件（2026-09-06 讀播放器 bundle 確認）。
+
+**interrupt 卡**（`type:"interrupt"`，2026-09-06 讀 bundle 確認）：`interruptCondition` 是變數條件，
+成立的那一刻插播這張卡；`interruptOnce` 預設只觸發一次，設 `false` 可重複（條件要先變回不成立再成立）；
+`interruptExit` 為 `return`（回原卡原行）／`jump`（去 `interruptTargetNodeId`）／`end`。
+這是「玩家隨時按一個東西、看完回到原處」唯一的做法：道具使用效果設一個變數，interrupt 卡條件判它，
+卡片內容結尾把變數設回去。
 同一個出口可以拉多條線：有條件的先判，第一條**無條件**的當預設。
 
 **`POST /nodes` 會把 `edge.data.condition` 整個丟掉，而且依 `(source, sourceHandle)` 去重**，
