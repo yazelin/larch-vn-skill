@@ -224,6 +224,35 @@ body 是 `{"kind":"expression"|"outfit"|"pose","variants":[{"name":…,"prompt":
 （`/api/akarion/ai/image`、`/character-expression`、`/remove-background` 是網頁前端在打的，
 那三支**只吃 Google 登入 cookie**，agent 金鑰一律 401。agent 要生圖走上面那支 `/art`。）
 
+## 素材包（asset pack）
+
+    GET|PUT|DELETE  /api/agent/asset-packs/:packId
+    GET             /api/agent/asset-packs            # 官方端點清單沒列,但存在,回 {packs:[…]}
+
+**`PUT` 是整包覆蓋，沒送到的素材等同被刪除**，所以一定要先 GET 整包、改完再整包送回去。
+既有素材的 `id` 與 `url` 不要改——已經匯入過的專案指的就是那些網址。
+
+單筆素材的欄位：`{id, url, name, type, remote, source, category}`，
+角色立繪另外吃 **`character`（角色名）與 `variant`（差分名）**——
+**這兩個欄位才是編輯器拿來歸類的依據，檔名長得再對也沒有用**。
+官方角色立繪包的寫法是 `name:"葵・動漫立繪"`、`character:"葵"`、`variant:"動漫立繪"`。
+
+合法的 `category`：`character`／`scene`／`music`／`sfx`／`ui`／`emoji`／`general`。
+**`audio` 與 `prop` 不在清單裡**（上傳工具會產出這兩個值，包宣告的卻是 `music`／`general`，
+不改的話歸不了類）。表情素材必須是圖片、`category` 設 `emoji`、
+`emojiShortcode` 填不含冒號的 ASCII、顯示名稱填 `emojiName`。
+
+移除素材只是把它從這個可重用清單上拿掉：**檔案還在 R2，專案的卡片與設定直接指網址，
+所以不會壞掉**（2026-09-05 實測：從包裡移掉兩張之後，CG 畫廊與 cgOps 照常運作）。
+
+`assetOrder` 是一串 id。移除素材要一併把它從 `assetOrder` 清掉，否則順序會指向不存在的東西。
+
+### 上傳時中文檔名會掉字
+
+實測踩到：`關羽・正裝.webp` 上傳後變成 `1788239699395___-__.webp`，中文與 `・` 全變底線。
+那種檔名解析不出角色與差分，只能靠認圖或比對。判定重複用縮圖歐氏距離就夠：
+縮成 32×48 灰階逐點相減取平均，**0 是同一張、2 以內是重壓縮的同一張、10 以上就是不同圖**。
+
 ## 專案設定
 
 ```jsonc
@@ -624,6 +653,21 @@ two-pass**（`measured_*` + `linear=true`）。單次 `loudnorm` 是動態的，
 不同增益，反而把接縫弄壞。
 
 ## CG 畫廊與 setVariable 卡
+
+**畫廊清單與解鎖動作是兩份資料，要一起改**：
+`project.settings.cgGalleryItems`（`{url, title, locked}`）決定畫廊上有什麼，
+版子上 `setVariable` 卡的 `cgOps`（`{id, url, mode:"unlock"}`）決定什麼時候解鎖。
+只改一邊會出現「畫廊有這張但永遠解不開」或「解鎖了但畫廊沒有」。
+
+**`title` 是玩家看得到的字**，而它預設帶著上傳時的副檔名（`張飛-單衣.png`）。要自己清掉。
+
+**換圖之後畫廊不會跟著換。** `cgGalleryItems` 與 `cgOps` 存的是網址快照，
+重畫立繪、重新上傳之後那兩處還指著舊檔（2026-09-05 實測：15 張立繪裡有 4 張指著舊版，
+畫面上看得出姿勢與表情都不一樣）。換圖的收尾動作是把這兩處的網址一起換掉。
+
+**改這兩處要走 `PUT /projects` 那條路，而它會清空版子**（見上面「專案本身」那節），
+所以流程是：抓版子 → PUT 專案 → 用抓下來那一份把版子原樣推回去 → 回讀比對卡數與連線數。
+
 
 `settings.cgGalleryItems` 是畫廊清單，`{url, title, locked}`。**`locked` 要自己一張一張設**，
 漏掉的話玩家一開遊戲就在畫廊裡看得到，等於劇透。
