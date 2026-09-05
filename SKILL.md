@@ -554,6 +554,14 @@ opaque origin iframe 裡的元素**（fill/tap 照常），連桌面驗收都可
   `exitConditions` 等，回下一步演出
 
 **guestPass 就是公開資訊**：市集頁傳 `{kind:"market", token:<發佈id>}`、分享頁同構。
+**那個 token 只吃 UUID，不吃自訂網址的 slug**（2026-09-05 實測：`glitch-phone` 與
+`yaze/glitch-phone` 打 `/api/marketplace/` 都回 404，只有 UUID 回 200）。而**設過
+`customSlug` 之後，UUID 就不在網址列上了**——網址變成 `/play/market/<handle>/<slug>`，
+照「複製網址後面那段」去做會拿到 slug 然後一路 404。要撈 UUID 用這支（免登入）：
+
+    curl -s "https://larch.ink/api/marketplace/by-url/<handle>/<slug>?play=1"   # 回應的 id 欄位
+    curl -s "https://larch.ink/api/marketplace"                                  # 列表,每筆都有 id
+
 實測**免登入、curl 帶市集發佈 id 就能拿到真回覆**（燒的是作者的 AI 點數）。
 所以「發佈＝任何人都能用你的點數對話」，寫 AI 卡之前要有數。
 
