@@ -910,6 +910,19 @@ curl -s -H "Authorization: Bearer $KEY" \
 有條件分支的話還要寫一支帶變數狀態的模擬器：照 `set`/`add` 更新變數、照條件挑邊，
 才驗得出哪些卡實際走不到。單純的可達性檢查抓不到。
 
+## 2026-09-06 番外《白帝城燈影》踩到的四件事
+
+- `GET /projects/:id/preview` 是 **GET**，不是 POST，POST 打過去回 404。
+- 剛 `POST /projects` 建出來的新專案，`GET /projects/:id` 回來**沒有 `boards` 這個鍵**，
+  要等第一次 `PUT /boards/:id` 之後才會出現。
+- 同一種插件（例如兩張連續的 `grant-item`）連在一起，第二張會沿用第一張留下的 iframe，
+  那份腳本已經 `done=true`，第二張看起來就是卡住不動。中間插一張對話卡隔開就好。
+- `open-bag` 寫進 `pickVar` 的是道具的**顯示名稱**（`itemName`），不是 `itemId`，
+  條件邊要拿顯示名稱去比對，不是拿 id。
+
+另外一件順手記的：`grant-item` 設 `consumable:false`，背包 UI 會標「重要物品，使用後保留」，
+不影響完成判定。
+
 ## 授權
 
 MIT © 林亞澤
