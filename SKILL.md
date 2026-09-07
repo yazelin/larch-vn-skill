@@ -943,6 +943,28 @@ curl -s -H "Authorization: Bearer $KEY" \
   一樣視為不消耗選擇的卡，否則模擬會把下一個選擇吃掉。實測 1.9 的 `open-bag` 寫進 `pickVar`
   的仍是顯示名稱，跟 1.7 相同。
 
+### 2026-09-08 謝幕章（同一部作品）
+
+- **第二個版子沒有專用建立端點。** `PUT /projects/:id` 的 `boards` 陣列多放一個
+  `{"id","kind":"story","mode":"story","name","description","nodes","edges"}` 就建好；之後主線版子照舊走
+  `PUT /boards/:boardId`。跨版子用 `data.type == "boardJump"` 卡：`{jumpBoardId, jumpNodeId}`，
+  跳之前把 `stage.actors` 清空，不然下一章開頭還站著上一章的人。章末卡標 `chapterEnd: true`。
+- **`POST /voice/generate` 只在主線版子找卡。** 對第二個版子的 nodeId 回 404；body 多帶
+  `"boardId": "<版子 id>"` 就吃。路線模擬碰到 `boardJump` 直接落到目標卡繼續走；跳章卡沒有出邊是正常的。
+- **小遊戲卡收到 `larch:complete` 不會自動往下。** 播放器只把結果顯示成「完成 · complete」，
+  再出一顆「套用結果並繼續」鈕，玩家按了才走（Preview bundle 的邏輯，格莉奇的片尾實測也一樣）。
+  **插件卡則會在收到完成訊號 240 毫秒後自動往下。** 所以「播完自動接下一張」的東西要做成插件卡，
+  不要做成 miniGame 卡。片尾字卷插件 `credits-roll` 就是這樣來的（larch-taoyuan 的 `plugin/credits-roll/`）：
+  自動繼續開關做在插件裡，關掉就出自己的「繼續」鈕。
+- **插件要導入「那個專案」才會執行。** 播放器對沒導入的插件卡顯示「這個專案沒有導入這個插件；
+  卡片不會執行」。導錯專案不會有任何錯誤，要 `GET /projects/:id` 對 `settings.plugins` 的鍵才看得出來
+  （2026-09-08 一次導到舊專案）。
+- **場景卡的文字在手機上只看得到頭兩三行**，多的被截掉、不捲動。片尾名單那種長文字不要塞場景卡，
+  用插件卡自己排版。
+- **重推腳本「沿用舊座標」的查表鍵要跟真正的節點 id 一模一樣。** 少寫一種卡型的前綴（例如
+  `setVariable-` 的圖鑑卡被當成 `plugin-` 去查），那種卡每推一次就被打回自動排版的座標；
+  `parentId` 還在、座標卻是絕對值，作者看到的就是「卡跑到群組外」，拉回去、推一次、又跑出去。
+
 ## 授權
 
 MIT © 林亞澤
