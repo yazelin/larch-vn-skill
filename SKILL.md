@@ -989,7 +989,14 @@ MIT © 林亞澤
   （uid 直接指到 iframe 內的按鈕）。上面「開發者協定進不去 sandbox iframe」講的是 `Runtime.evaluate`，
   點按與 press_key 走 a11y 樹就不必量座標。鍵盤事件要先點過 iframe 內任一元素取得焦點。
 - `POST /characters` 的回應**不帶 `id`**，建完要再 `GET /characters` 用名字撈一次。
-- 一份 16:9 的 HTML 簡報塞進 fullscreen miniGame 卡不用改版面：整份 CSS 內嵌、`.slide{display:none}` +
-  `.active{display:flex}` 照舊；隱藏鈕用 inline `display:'inline-block'` 開，設空字串會被自己的 `display:none` 蓋回去。
+- **寫入端點從 2026-09-08 起要帶 `If-Match`。** `PUT /boards/:id` 不帶會回 `428 PROJECT_REVISION_REQUIRED`
+  「缺少 If-Match revision，請重新讀取後再儲存」。revision 在每個 GET 的回應標頭 `ETag`（同 `X-Larch-Revision`，
+  一個整數），寫之前 GET 一次、把那個值原樣放進 `If-Match`。這是樂觀鎖：中間被編輯器改過就會被擋，
+  不再靜默蓋掉——上面「編輯器分頁把版子打回舊版」那條從此有伺服器端的防線。
+- 一份 slide-deck skill 產的 HTML 簡報可以**整份原樣**塞進 fullscreen miniGame 卡，原腳本（N 備註、P 主控台、
+  手機遙控 WebSocket、雷射筆）全部能跑，實測手機遙控從 sandbox iframe 連得上 Cloudflare worker。要補的只有三件：
+  sandbox 是 opaque origin，`localStorage`／`sessionStorage` 一碰就丟 SecurityError，用 `Object.defineProperty(window,…)`
+  換成記憶體版；`history.replaceState` 同理包 try；載入時 `window.focus()` 搶焦點，不然鍵盤到不了 iframe。
+  做不到的是靠 localStorage 的第二視窗同步。隱藏鈕用 inline `display:'inline-block'` 開，設空字串會被自己的 `display:none` 蓋回去。
 - 專案開著 `aiDirectorAllowImprovisation` 時，播放器頂端會標「AI 即興模式」，小遊戲 `larch:complete` 之後
   接手的是 AI 導演的「主持人」，不是版子上的下一張卡。
