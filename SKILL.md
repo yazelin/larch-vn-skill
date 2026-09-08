@@ -243,6 +243,9 @@ body 是 `{"kind":"expression"|"outfit"|"pose","variants":[{"name":…,"prompt":
     GET|PUT|DELETE  /api/agent/asset-packs/:packId
     GET             /api/agent/asset-packs            # 官方端點清單沒列,但存在,回 {packs:[…]}
 
+**建一個新包就是 `PUT /api/agent/asset-packs/pack-<uuid>`**（自己給 id），body 至少要 `name`；
+**body 不可以包一層 `{"pack": …}`**，包了回 `400 素材包需要名稱`（2026-09-09 實測）。
+
 **`PUT` 是整包覆蓋，沒送到的素材等同被刪除**，所以一定要先 GET 整包、改完再整包送回去。
 既有素材的 `id` 與 `url` 不要改——已經匯入過的專案指的就是那些網址。
 
@@ -1043,3 +1046,7 @@ MIT © 林亞澤
 - 簡報要放進 Larch 用 `~/larch-slide-deck`（github.com/yazelin/larch-slide-deck）：Markdown 型標記寫整份，`push.py` 推成插件卡
   （帶 If-Match、自動寫 settings.plugins、回讀比對），`dev/check.mjs` 在同款 sandbox 逐頁量溢出。0909 直播就是這樣上的。
 - 寫入端點的 502「Application failed to respond」是暫時的，等 5 秒重試就過；不要當成寫壞了。
+- **連兩張同種插件卡，第二張不會啟動**（2026-09-09 用簡報插件確認，症狀跟先前記的 `grant-item` 一樣，
+  所以這是插件卡的通則不是那個插件的問題）：播放器沿用前一張留下的 iframe，畫面停在前一張的最後狀態，
+  按鈕還在、按了沒反應。中間插一張對話卡就正常。把一份簡報切成七段時每兩段之間都要隔一張
+  （`larch-slide-deck/split.py` 自動做這件事，順便報下一段是什麼）。
