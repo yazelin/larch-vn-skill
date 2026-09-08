@@ -1014,9 +1014,10 @@ MIT © 林亞澤
 ## 2026-09-08 共享白板（多人同時在線）實測
 
 - **多人同時編輯的版子不要整張 `PUT /boards`，走 `POST /projects/:id/nodes`** 增量寫，body 是
-  `{"boardId", "nodes":[…], "edges":[…]}`，一樣要帶 `If-Match`。實測有人在線時 revision 幾秒就跳一號，
-  讀取到寫入之間就會被 `409 PROJECT_REVISION_CONFLICT` 擋，所以要「GET 拿 ETag → 立刻 POST → 409 就重來」
-  迴圈，兩次內會過。線性鏈沒有條件邊，所以 `POST /nodes` 丟條件的坑在這裡不成立。
+  `{"boardId", "nodes":[…], "edges":[…]}`。線性鏈沒有條件邊，所以 `POST /nodes` 丟條件的坑在這裡不成立。
+  **revision 跳號不用理它**（平台作者 2026-09-08 說的：衝突由伺服器端處理）。我那次帶了 `If-Match` 又被
+  `409 PROJECT_REVISION_CONFLICT` 擋、重試才過，是自己把樂觀鎖玩得太緊；增量寫入不要拿舊 ETag 去比。
+  （沒帶 `If-Match` 的 `POST /nodes` 沒實測過，別拿真專案試寫入端點。）
 - **`POST /voice/generate` 三條線並行是可以的（按角色分線），但同一張卡的不同句會撞 `409 PROJECT_FIELD_CONFLICT`**
   （欄位級鎖，訊息「AI 修改的欄位已被其他人更新」）。等幾秒重送同一句就過，音檔不會漏。
   11 句三線並行含重試約兩分鐘。
