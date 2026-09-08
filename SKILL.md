@@ -1000,3 +1000,7 @@ MIT © 林亞澤
   做不到的是靠 localStorage 的第二視窗同步。隱藏鈕用 inline `display:'inline-block'` 開，設空字串會被自己的 `display:none` 蓋回去。
 - 專案開著 `aiDirectorAllowImprovisation` 時，播放器頂端會標「AI 即興模式」，小遊戲 `larch:complete` 之後
   接手的是 AI 導演的「主持人」，不是版子上的下一張卡。
+- **miniGame 卡裡再嵌別的網站可以**（sandbox 裡再開一層 iframe），條件兩個：對方沒設 X-Frame-Options（市集頁有、
+  GitHub Pages 沒有），以及對方站自己碰 storage／Service Worker 要有防護——內層繼承 opaque origin，
+  localStorage、IndexedDB、SW 全部一碰就丟 SecurityError，開機就讀 storage 的站會整支腳本陣亡（格莉奇OS 2026-09-08
+  就是這樣卡在「系統讀取中」，ai-brain-site PR #31 修掉）。音訊在內層可以播（glitch-music 實測）。
