@@ -1004,3 +1004,9 @@ MIT © 林亞澤
   GitHub Pages 沒有），以及對方站自己碰 storage／Service Worker 要有防護——內層繼承 opaque origin，
   localStorage、IndexedDB、SW 全部一碰就丟 SecurityError，開機就讀 storage 的站會整支腳本陣亡（格莉奇OS 2026-09-08
   就是這樣卡在「系統讀取中」，ai-brain-site PR #31 修掉）。音訊在內層可以播（glitch-music 實測）。
+  補（同日）：內層站的 IndexedDB 也一樣丟 SecurityError，格莉奇OS 的聊天在送出前先寫 IndexedDB，
+  訊息就此無聲消失（ai-brain-site PR #32 改成退到記憶體）。**內層音訊實測會出聲**：在真的 Larch 預覽裡用真實滑鼠
+  點播放，audio 元素在走、音量 0.8、沒靜音、新開的 AudioContext 是 running；自動化點擊要等內層版面排定
+  （封面圖載完按鈕會下移約 18px），不然點到隔壁鈕、看起來像「沒反應」。
+  本機模擬要用**帶 `Access-Control-Allow-Origin: *` 的靜態伺服器**：opaque origin 對自己站的 module import
+  與 fetch 都算跨網域，python http.server 沒那個標頭會得到假陰性（聊天鈕永遠 disabled）。
