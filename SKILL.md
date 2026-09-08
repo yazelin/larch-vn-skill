@@ -429,6 +429,16 @@ MIME 不合法（匯出用 `audio/mp3`，實測能播）、`file://` 被擋（�
 `400 assetIds 不可為空`），而且**只刪記錄不刪 R2 上的檔案**（實測刪完原網址仍回 200），
 所以清素材庫不會弄壞已經發佈的市集快照。刪素材**不會**連帶移除角色的差分，那是兩份資料。
 
+## 樂觀鎖：寫入要帶 If-Match（2026-09-08 起）
+
+平台加了 revision：每個回應帶 `ETag: "<數字>"`。**`PUT /projects/:id` 與 `PUT /projects/:id/boards/:boardId`
+都要帶 `If-Match: "<那串數字>"`**，少了回 `428 {"code":"PROJECT_REVISION_REQUIRED"}`，拿舊的回
+`409 {"code":"PROJECT_REVISION_CONFLICT","conflictRevision":N}`；成功的回應帶新的 ETag。
+`If-Match` 帶 updatedAt 或別的字串回 `400 If-Match revision 格式無效`。
+`POST /characters`、`POST /media` 不用帶（實測照常成功）。作者在編輯器存一次檔 revision 就會跳，
+所以腳本要從每個回應記住最新 ETag、PUT 前帶上、409 就重讀再試（`larch-taoyuan/build.py` 的 `call()` 已這樣做）。
+這也表示**編輯器開著時推版子會直接 409，不再是靜默蓋回**，比以前安全。
+
 ## 專案本身
 
 - `POST /projects` 建得了新專案（201）。
@@ -1025,3 +1035,11 @@ MIT © 林亞澤
   伺服器自己把 `voiceUrl` 寫進去，不必建臨時卡、也不必把網址餵回去。11 句三線並行含重試約兩分鐘。
 - 平台重啟時 agent API 整片回 `502 Application failed to respond`（Railway 層），不是金鑰問題；隔幾十秒重試。
   剛回來那幾分鐘每個請求要十幾秒。
+
+## 2026-09-09 簡報插件（larch-slide-deck）
+
+- **fullscreen 插件卡預設會被外框吃掉 65px**（1280×720 的視窗給卡片 1280×655），`pluginFrame:{showTitle:false, showButton:false}`
+  才拿回整個 720；miniGame 卡本來就是整個視窗。版面照 720 設計的內容在 655 會溢出，兩個都設。
+- 簡報要放進 Larch 用 `~/larch-slide-deck`（github.com/yazelin/larch-slide-deck）：Markdown 型標記寫整份，`push.py` 推成插件卡
+  （帶 If-Match、自動寫 settings.plugins、回讀比對），`dev/check.mjs` 在同款 sandbox 逐頁量溢出。0909 直播就是這樣上的。
+- 寫入端點的 502「Application failed to respond」是暫時的，等 5 秒重試就過；不要當成寫壞了。
