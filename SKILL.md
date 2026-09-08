@@ -148,11 +148,11 @@ POST /characters  {"characterId":"character-…",   // 更新要用這個
 
 - **更新要帶 `characterId`。傳 `id` 會變成新增一個重複角色。**
 - 只覆蓋你傳的欄位，其餘保留。
-- 差分實際只存 `{id,name,emotion,imageUrl}`。**但是預覽播放器不做表情切換**（2026-09-02
-  實測）：卡片層與 `dialogueLines[].emotion` 都對得到 `expressions`，畫面上的立繪照樣不換，
-  actor 補 `characterId` 也沒用。**要換表情就切卡**：在表情變的那一句把卡切開，
-  把那張卡 `stage.actors[].url` 直接指到差分圖。切出來的卡不帶 `transition`，
-  actor 一樣掛 `enter:"fade"`，播起來就是 0.1 秒的自然換臉。
+- 差分實際只存 `{id,name,emotion,imageUrl}`。**每一句可以有自己的立繪：`dialogueLines[i].stage.actors[]`**
+  （2026-09-08 先用 API 寫、再用瀏覽器播實測；編輯器裡每句選表情寫的就是這個欄位）。
+  播放器照那一句的 `stage` 換圖，沒有 `stage` 的句子沿用卡片層的 `stage`。所以換表情**不必切卡**，
+  在那一句放一套演員、只換那個人的 `url` 就好。`dialogueLines[i].emotion` 只是名牌上的小字與配音語氣提示，
+  它**不會**去角色的 `expressions` 找圖——2026-09-02 那次「不做表情切換」的結論就是只設了 emotion 沒設每句 stage。
 - `secrets` 是「知道但不主動說」，**發佈到市集時會被拿掉**（所以別人的專案裡看不到）。
 - **不要用整包 `PUT /projects/:id` 寫角色**：寫得進去，可是角色工坊那一頁不見得認。
 - **`expressions` 是附加不是覆蓋。** 送一份新清單過去，舊的差分不會消失，兩份會並存。
@@ -215,6 +215,9 @@ body 是 `{"kind":"expression"|"outfit"|"pose","variants":[{"name":…,"prompt":
 回應的 `input_images` 都是 `0`。所以 agent 這條做不了「以參考圖為基準的編輯」，
 只有 `/art` 可以（它以 `portraitUrl` 當基準，另外還吃得下 `references` 陣列當第二張參考圖）。
 
+**`/art` 的成品只有 843×1264，而且你要求的純色底會被畫成偏亮的近似色**（要 #0000FF 拿到 (66,94,238)）。
+放大到 1024×1536 畫布後髮絲糊、固定色去背邊緣髒，2026-09-08 作者一眼看出來。要高畫質的差分改走自己的生圖工具（.11 codex-image 回 1024×1536 純色底）。
+
 **`/art` 的參考圖有大小上限，超過就回 502 Bad Gateway。** 2026-09-04 實測的臨界點在 1013 KB（過）到 1049 KB（不過）之間。參考圖是走網址，但服務端抓下來之後會塞進請求，1.3 MB 的 PNG 每次都掛。
 
 **這個失敗看起來像伺服器不穩定**：同一支腳本、同一個時間，張飛（參考圖 1013 KB）40 秒成功，關羽（1335 KB）連續四次 502。我為此測了提示詞長度、測了端點本身是否正常，兩個方向都錯，真正的變數是那張圖多大。**先量參考圖的大小再懷疑別的。**
@@ -223,6 +226,17 @@ body 是 `{"kind":"expression"|"outfit"|"pose","variants":[{"name":…,"prompt":
 
 （`/api/akarion/ai/image`、`/character-expression`、`/remove-background` 是網頁前端在打的，
 那三支**只吃 Google 登入 cookie**，agent 金鑰一律 401。agent 要生圖走上面那支 `/art`。）
+
+## 併發上限（平台作者 2026-09-08 提供）
+
+以人為單位計，不是以白板：
+
+- **語音**：每個帳號各自計費、各自每分鐘 12 次；多人同時生成可以並行。
+- **生圖**：每個人的瀏覽器分頁各自最多同時跑 3 張；第 4 張排在那個人的本地隊列，不卡別人。
+- **白板本身**沒有 AI 任務總量或共同隊列限制。
+
+所以自己的產線可以開到 **3 張並行**（`voice.py` 本來就是三條並行；`/art` 差分改成按角色分三條跑，
+同一個角色要串 `portraitUrl` 所以同角色內仍然依序）。這是作者對網頁介面說的，agent API 是否同一套上限沒有另外量過。
 
 ## 素材包（asset pack）
 
@@ -968,3 +982,14 @@ curl -s -H "Authorization: Bearer $KEY" \
 ## 授權
 
 MIT © 林亞澤
+
+## 2026-09-08 簡報嵌進小遊戲卡（週三共創板）
+
+- **chrome-devtools MCP 的 a11y snapshot 看得到 miniGame 卡 srcdoc iframe 裡的元素，而且 click 點得到**
+  （uid 直接指到 iframe 內的按鈕）。上面「開發者協定進不去 sandbox iframe」講的是 `Runtime.evaluate`，
+  點按與 press_key 走 a11y 樹就不必量座標。鍵盤事件要先點過 iframe 內任一元素取得焦點。
+- `POST /characters` 的回應**不帶 `id`**，建完要再 `GET /characters` 用名字撈一次。
+- 一份 16:9 的 HTML 簡報塞進 fullscreen miniGame 卡不用改版面：整份 CSS 內嵌、`.slide{display:none}` +
+  `.active{display:flex}` 照舊；隱藏鈕用 inline `display:'inline-block'` 開，設空字串會被自己的 `display:none` 蓋回去。
+- 專案開著 `aiDirectorAllowImprovisation` 時，播放器頂端會標「AI 即興模式」，小遊戲 `larch:complete` 之後
+  接手的是 AI 導演的「主持人」，不是版子上的下一張卡。
