@@ -1,6 +1,6 @@
 ---
 name: larch-vn
-description: 在 Larch 平台做視覺小說。要建專案、上素材、建角色與表情、排場景與立繪演出、設標題畫面的時候用。內含平台實際欄位與踩過的坑，avoid 從零猜。
+description: 在 Larch 平台做視覺小說時,補官方 skill 沒寫的那一半:平台實際行為與踩過的坑(立繪不會自己清、編輯器分頁會把版子打回舊版、PUT 會清空專案、背包插件、去背與透明底、演出的數字抓多少)。官方的 larch-story-studio 講 API 怎麼呼叫,這份講它實際上不照文件跑的地方。兩份一起看。
 ---
 
 # Larch 視覺小說
@@ -39,6 +39,42 @@ REST 全表（2026-09-01 對過）：
     POST|DELETE             /api/agent/projects/:id/publish
     POST                    /api/agent/projects/:id/share-link
     GET|PUT|DELETE          /api/agent/asset-packs/:packId
+
+## MCP 與 REST 怎麼選（2026-09-10 實測）
+
+平台另有一支 MCP server 在 `https://larch.ink/mcp`（`Larch Story Studio` 1.2.0，46 個工具，
+只吃 `Authorization: Bearer <Agent Key>`，沒有 OAuth）。**接不接得上要看客戶端，而且同一件事
+REST 比 MCP 快兩倍。**
+
+**差多少要看操作，別記一個數字。** 兩組都是 REST／MCP 交錯輪流跑的：
+
+| 操作 | REST 中位數 | MCP 中位數 | 差 | 全距 |
+|---|---|---|---|---|
+| 列專案（`/projects`，n=5） | 8.4 秒 | 16.4 秒 | +8.0 | **不重疊** |
+| 讀單一專案（`/projects/:id`，n=4） | 32.4 秒 | 34.2 秒 | +1.8 | 重疊 |
+
+輕操作差得很乾淨（REST 最慢那次仍比 MCP 最快那次快）；重操作那組逐輪差是
+`+14.3 / −1.0 / +2.2 / +1.5`，第二輪 MCP 反而快，差距落在雜訊裡。
+**九輪裡 MCP 只贏一次而且只贏 0.95 秒，所以方向上 MCP 沒有比較快，但「快兩倍」只適用於輕操作。**
+
+**這台伺服器的速度會隨時間變動一倍以上**（列專案那組更早一輪測到的是 REST 15 秒／MCP 21–40 秒；
+讀專案那組四輪之內 REST 自己就從 22.8 晃到 34.1）。所以：**要比就交錯跑**，一邊跑完再跑另一邊
+會量到時間漂移而不是兩條路的差別；**絕對數字別記死**，跨時段的數字不能互相比較。
+
+| 客戶端 | 接得上嗎 |
+|---|---|
+| **Antigravity（agy）** | **可以**。46 個工具 schema 會快取到 `~/.gemini/antigravity-cli/mcp/<名稱>/` |
+| **Claude Code** | **不行**。`initialize` 28.6 秒、`tools/list` 31.4 秒，連線逾時就是 30 秒 |
+| 手刻 curl 打 POST | 可以。一次送一個請求、自己決定等多久，適合探測與除錯 |
+
+**卡死 Claude Code 的是 `tools/list`。** 它要一次吐回 46 個工具的完整 schema，實測 30.3 秒，
+剛好越過 Claude Code 那條 30 秒的線（`initialize` 23.6 秒過得去）。所以症狀會是
+「握手成功、工具清單抓不回來」——`MCP_TIMEOUT=120000` 治得了前者，治不了後者。
+三種 scope（project／另一個 project／user）都試過，也在伺服器快慢兩種狀態下各測一次，一律失敗。
+**不要把 `claude mcp add --transport http` 寫進給 Claude Code 使用者的教學。**
+官方的 larch-story-studio skill 自己也寫了「host 接不上 MCP 就立刻改走 REST」。
+
+agy 剛註冊完的**第一個** session 可能看不到工具（快取還沒寫完就定型了），下一個 session 才有。
 
 金鑰的權限是分項的（讀取／編輯／素材／AI 生成／匯出／版本／預覽／發佈），
 在同一頁勾。**403 說少了某個 scope 是設定問題，不是 bug**，請作者去開那個開關，不要繞路。
@@ -210,6 +246,22 @@ body 是 `{"kind":"expression"|"outfit"|"pose","variants":[{"name":…,"prompt":
 
 **連載角色的服裝要有因果就要串鏈**：正裝 → 男身 → 男甲 → 跌坐，每一段拿前一段當
 `portraitUrl`。從錯的基準長（例如讓「掉下來的男裝」從女式正裝長出來）整組要重做。
+
+**`/images/generate` 的 body 與回應**（2026-09-10 實測）：
+
+    POST /api/agent/projects/:id/images/generate
+    {"prompt":"…", "category":"scene|character|prop", "name":"…"}
+    → {"asset":{id,name,type,url,category,remote,source}, "providerResponse":{…}}
+
+MCP 的 `larch_generate_image` 回應形狀完全一樣，兩條路只差在外面那層信封。
+
+**`/images/generate` 回的圖沒有 alpha 通道**（2026-09-10 實測）：指定 `category:"prop"`
+也一樣，回的是 1254×1254 的 RGB PNG、白底不是透明底。所以道具圖要進背包插件一定要再去背，
+而**平台的去背要扣 AI Credit**（官方讀書會 2026-08-16 講的：AI Credit 用在去背與生成語音）。
+本機去背免費，道具這類需要透明底的素材建議在本機做完再上傳。
+回應裡還有一個欄位值得知道：`local_provider: "codex"` —— **平台的生圖底層就是 Codex**，
+自己用 Codex 生等於少繞一層。挑戰期間 `billing:"free"`、`credits_used:0`。
+慢：生成 42.5 秒，總往返 85 秒，台上示範要留等待時間。
 
 **`POST /images/generate` 不吃參考圖**：`references` 傳 data URL 或裸 base64，
 回應的 `input_images` 都是 `0`。所以 agent 這條做不了「以參考圖為基準的編輯」，
