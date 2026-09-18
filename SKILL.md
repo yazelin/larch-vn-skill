@@ -1194,6 +1194,20 @@ MIT © 林亞澤
 **素材包的 `description` 換行保得住。** 讀回來 `\n` 還在，所以純文字排版分得開段落，
 不必拿連續空白去擠。市集上那個欄位不渲染 Markdown，`##` 與 `**` 會原樣顯示出來。
 
+**傳影片要送 `application/octet-stream`，不要送 `video/mp4`。** 2026-09-18 實測：
+`POST /media` 帶 `video/mp4`，Larch 會把它推去 Cloudflare Stream，回來的 `url` 是
+**iframe 播放頁**（`customer-*.cloudflarestream.com/<uid>/iframe`，回 HTML 1242 bytes），
+`/downloads/default.mp4` 是 404。那個網址 `<video src>` 吃不下（真 Chrome 實測 error code 4），
+而 Larch 的卡片是把網址塞進插件卡 HTML 的 `<video>` 裡播的，所以影片等於不能用。
+同一個檔改送 `application/octet-stream` 就存進 R2 直鏈，位元組一模一樣，真 Chrome 播得動
+（readyState 4、720×1280、currentTime 有前進）。代價是 R2 回的 `Content-Type` 也是
+`application/octet-stream` 而不是 `video/mp4`，Chrome 會嗅探所以沒事，**iOS Safari 沒驗過**。
+
+**驗影片能不能播一定要用真 Chrome。** Playwright 內建的 Chromium 沒有 H.264，
+連已知可播的對照組都會回 error code 4，看起來像網址壞掉。`executablePath` 指
+`/opt/google/chrome/chrome`。**這種測一定要放一個已知可播的對照組**，
+否則分不出是網址的問題還是瀏覽器的問題。
+
 **但它的上限是 600 字元，超過的部分靜默截斷。** 2026-09-18 實測：送 609 字元，
 `PUT` 回 200、沒有任何錯誤，讀回來剛好 600 字元，最後一句被砍在句子中間
 （「立繪、頭像與道具是透明底，直」）。所以長描述**寫完一定要回讀比對字元數**，
