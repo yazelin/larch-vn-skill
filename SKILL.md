@@ -136,6 +136,18 @@ curl -s "https://larch.ink/api/marketplace/<發佈id>?play=1" -o mk.json
 `characterLayers`（舊欄位，`{position,x,y,scale,opacity,flipX}`）編輯器某些地方還在讀，
 兩個都寫最安全。**不要用 `flipX`**：不對稱的記號（單邊耳飾、胸前徽章）會鏡射到另一邊。
 
+### 背景與 BGM 可以逐句換，不必拆卡（2026-09-24 實測）
+
+`dialogueLines[i].background` 與 `dialogueLines[i].bgm`（配 `bgmVolume`／`bgmLoop`）播放器都認，
+而且**換了之後會延續到下一次有設的那句**，所以只在換圖、換曲的那一句寫就好。
+全 CG 演出（不用立繪）一幕一張卡、逐句掛 CG 就做得完：《仙泉香布纏》七幕 130 句、
+20 個換圖點、8 個換曲點，桌機與 iPhone 模擬逐句比對背景與正在播的 `<audio>` 全對。
+讀 bundle 只看得到預載器讀這個欄位，看不到套用的地方——**是實際播出來才確定的**。
+「用道具圖當背景」不行：`stage.props` 只畫成畫面中間一小張，撐不滿。
+
+自動化點擊翻頁要點**對話框**（畫面下半部），點上半部不會前進；對話有打字效果，
+第一下只把字打完，要點到下一句出現為止。手機模擬（`hasTouch`）要用 `touchscreen.tap`，`mouse.click` 翻不了頁。
+
 ### 立繪只在卡片邊界換，而且不會自己清掉
 
 一張卡從頭到尾只有一套 `stage.actors`。所以「講到第五句她才把披風換上」這種演出，
