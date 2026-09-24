@@ -148,6 +148,38 @@ curl -s "https://larch.ink/api/marketplace/<發佈id>?play=1" -o mk.json
 自動化點擊翻頁要點**對話框**（畫面下半部），點上半部不會前進；對話有打字效果，
 第一下只把字打完，要點到下一句出現為止。手機模擬（`hasTouch`）要用 `touchscreen.tap`，`mouse.click` 翻不了頁。
 
+### 卡片「進階設定」的全部演出欄位（2026-09-24 讀編輯器 bundle）
+
+**每一句能自己擁有的**（編輯器的 `owns` 判斷）：`background`、`bgm`、`bgmAction`、`visualEffects`，
+另外 `sfxUrl`／`sfxVolume`／`sfxLoop`、`stage`、`voiceUrl` 也是逐句讀。其中背景與 BGM 實測過，其餘是讀程式碼。
+
+| 欄位 | 值 |
+|---|---|
+| `bgmAction` | `fadeOut`（配 `bgmFadeOutMs`，夾在 250–5000，預設 1500）／`stop`。要讓 BGM 在某句淡出就寫在那句 |
+| `sfxUrl` | 任意音檔網址，或內建 `/sfx/<id>.mp3`（見下）。`sfxVolume` 預設 0.8，`sfxLoop` 預設 false |
+| `visualEffects` | **陣列、可疊加**：`[{id, intensity, speed, tint}]`。舊的單一欄位 `visualEffect:"rain"` 仍相容 |
+
+注意：卡片層的 `sfxUrl` **只在卡片只有一句時**才播（`lines.length===1`），多句的卡要寫在句子上。
+
+`visualEffects` 的 id（`intensity` 夾在 0.2–2.4，預設 1）：
+
+| id | 名稱 | 可調 |
+|---|---|---|
+| `fog` 霧氣／`rain` 雨幕／`snow` 落雪／`petals` 花瓣／`embers` 餘燼／`stars3d` 3D 星海／`flash` 閃光 | | intensity、speed、tint |
+`visualEffect`（舊單一欄位）：`rain` `snow` `embers` `flash` `stars3d` `petals` `vignette` `speedLines` `fog` `shake` `none`。新的是可疊加的 `visualEffects` 陣列，見「進階設定的全部演出欄位」
+| `vignette` 暗角 | | intensity、tint |
+
+`speedLines` 播放器畫得出來，但不在編輯器選單、也不在正規化白名單裡，
+`visualEffects` 陣列會把它濾掉，只剩舊欄位 `visualEffect:"speedLines"` 可能有效——沒實測。
+
+**內建音效庫**（`url` 是站內相對路徑 `/sfx/<id>.mp3`）：
+`rain` 下雨 4s、`thunder` 打雷 4.2s、`wind` 風聲 5s、`waves` 海浪 6s、`fire` 火焰 4s、
+`footsteps` 腳步聲 1.4s、`knock` 敲門 1.5s、`whoosh` 揮擊／轉場 0.7s、`sting` 低沉緊張音 2.6s、
+`heartbeat` 心跳 2.4s、`chime` 提示鈴 1.8s。
+
+**只在卡片層的**：`transition`（`fade` `wipeLeft` `wipeRight` `blurCut` `flash` `irisIn` `fadeBlack` `none`）與
+`transitionMs`、`autoAdvance`。
+
 ### 立繪只在卡片邊界換，而且不會自己清掉
 
 一張卡從頭到尾只有一套 `stage.actors`。所以「講到第五句她才把披風換上」這種演出，
