@@ -168,6 +168,13 @@ curl -s "https://larch.ink/api/marketplace/<發佈id>?play=1" -o mk.json
 震動另外會在舞台加 `.stage-shaking`。音效是沒掛進 DOM 的 `new Audio()`，查不到 `<audio>`，
 要聽 `response` 看 `/sfx/*.mp3`，而且同一檔只會抓一次（之後走快取）。
 
+**要連續的環境音（火、雨、風）不要用音效**：每句重設同一個 `sfxUrl` 也會換句就從頭播，
+玩家聽到的是「斷一下、重播、斷一下」（2026-09-24 作者試玩回報）。做法是把環境音混進那段的 BGM：
+短音效用等功率交叉淡接疊成跟曲子一樣長的底（4 秒的 fire.mp3 用 0.8 秒淡接），
+壓到比音樂低約 10 dB（音樂 −12 LUFS、底 −22 LUFS），`amix normalize=0` 後加 `alimiter` 防爆音，
+上傳成新曲、掛在那段第一句的 `bgm`。實測換句時 `currentTime` 一路往前走，不會重來。
+內建音效抓得到：`https://larch.ink/sfx/<id>.mp3`（要帶瀏覽器 User-Agent）。
+
 `visualEffects` 的 id（`intensity` 夾在 0.2–2.4，預設 1）：
 
 | id | 名稱 | 可調 |
