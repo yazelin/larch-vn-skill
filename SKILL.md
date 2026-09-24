@@ -161,6 +161,13 @@ curl -s "https://larch.ink/api/marketplace/<發佈id>?play=1" -o mk.json
 
 注意：卡片層的 `sfxUrl` **只在卡片只有一句時**才播（`lines.length===1`），多句的卡要寫在句子上。
 
+**延續規則不一樣（2026-09-24 實播量過）**：`background`／`bgm` 設了會延續到下一次有設的那句；
+**`visualEffects` 寫在句子上只管那一句**，下一句回到卡片層的設定（要一段連續的效果就每句都寫，
+或寫在卡片上、用 `[]` 在個別句子清掉）；**音效只在當句播**，換句就停，要持續就每句都設。
+驗特效看 DOM：`.visual-effects` 底下每個效果一層 `.visual-effect-<id>`，強度在 inline 的 `--fx-intensity`；
+震動另外會在舞台加 `.stage-shaking`。音效是沒掛進 DOM 的 `new Audio()`，查不到 `<audio>`，
+要聽 `response` 看 `/sfx/*.mp3`，而且同一檔只會抓一次（之後走快取）。
+
 `visualEffects` 的 id（`intensity` 夾在 0.2–2.4，預設 1）：
 
 | id | 名稱 | 可調 |
