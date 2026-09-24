@@ -1006,6 +1006,10 @@ index 換版之後 chunk 的 hash 也會變，別存舊的。
 
 **這是驗收的唯一方法，讀 JSON 讀回來不算看過。**
 
+**本機裝了 `larch-preview` skill 的話，先用它。**它在本機用 Larch 自己的播放器播專案 JSON，
+不必推版子，也不經過平台；使用者可以直接在畫面上留回饋（哪張卡第幾句、台詞改成什麼、
+哪個字唸錯、附截圖），agent 讀檔就能修。推上平台之後，再用下面這支端點做最後確認。
+
     GET /api/agent/projects/:id/preview?boardId=&cardId=&hours=
 
 回 `{url, playUrl, boardUrl, expiresAt}`。不用登入，金鑰本身就是通行證。
