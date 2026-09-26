@@ -99,7 +99,7 @@ Subtle motion only:
 The motion at the end should return close to the starting pose so the clip can loop.
 ```
 
-**二、檢查浮水印。** 實測這類工具產的片右下角會帶一個 ✦ 小星星，標題畫面滿版時看得到，交給作者決定怎麼處理。
+**二、檢查浮水印。** 實測這類工具產的片右下角會帶一個四角星形的小標記，標題畫面滿版時看得到，交給作者決定怎麼處理。
 
 **三、一行做成循環 AVIF。** `make_title_loop.sh 原片.mp4 輸出.avif [淡入秒數=1.5] [crf=38]`：讀片長、最後 N 秒淡入開頭、去聲音、轉 AVIF，印出大小與兩個 SSIM。
 實測兩支 10 秒 720p：1.6 MB／1.0 MB；接縫 SSIM 0.83／0.96（相鄰兩格的對照值 0.90／0.98，接縫值接近對照值就看不出來）；畫質 SSIM 0.98。
