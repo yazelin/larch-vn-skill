@@ -1,0 +1,72 @@
+<!--
+  Larch 自訂標題畫面範本（動態 AVIF 背景）。說明見 interface-skills.md。
+  - LOOP_ID 換成動態 AVIF 在媒體庫的 id，寫成 media:<id>。
+  - 書名與按鈕預設在右側；人物在右邊的封面，把 <main class="cover"> 改成 <main class="cover is-left">。
+  - object-position 決定裁切焦點（桌機 38%、手機 51%），照封面人物的位置調。
+  - 紅線（.cord）與按鈕配色是《仙泉．香布纏》的，換作品就換色。
+-->
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #0b0710; }
+.cover { position: relative; min-height: 100dvh; overflow: hidden; font-family: "Noto Serif TC", "Songti TC", "PMingLiU", serif; color: #f6efe6; }
+.art, .loop { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 38% 50%; pointer-events: none; }
+.loop { opacity: 0; transition: opacity 1.2s ease; }
+.loop.is-playing { opacity: 1; }
+.shade { position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgba(8,5,12,0) 38%, rgba(8,5,12,.55) 62%, rgba(8,5,12,.86) 100%),
+              linear-gradient(0deg, rgba(8,5,12,.55), rgba(8,5,12,0) 35%); }
+.content { position: absolute; right: 5vw; top: 50%; transform: translateY(-50%); text-align: right; }
+.is-left .content { right: auto; left: 6vw; text-align: left; }
+.is-left .cord { margin-left: 0; background: linear-gradient(270deg, rgba(178,24,36,0), #b21824 40%, #d8343f); }
+.is-left nav { align-items: flex-start; }
+.is-left .shade { background: linear-gradient(270deg, rgba(8,5,12,0) 38%, rgba(8,5,12,.55) 62%, rgba(8,5,12,.86) 100%), linear-gradient(0deg, rgba(8,5,12,.55), rgba(8,5,12,0) 35%); }
+h1 { margin: 0; font-weight: 700; font-size: clamp(30px, 4.6vw, 76px); line-height: 1.1; letter-spacing: .1em; white-space: nowrap;
+  text-shadow: 0 2px 18px rgba(0,0,0,.7); }
+.cord { display: block; height: 2px; margin: 18px 0 28px auto; width: 70%;
+  background: linear-gradient(90deg, rgba(178,24,36,0), #b21824 40%, #d8343f); }
+nav { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+button { font: inherit; font-size: clamp(16px, 1.35vw, 21px); letter-spacing: .3em; min-width: 11em; padding: 12px 22px 12px 26px;
+  color: #f6efe6; background: rgba(20,10,16,.62); border: 1px solid rgba(216,180,120,.75); border-radius: 2px; cursor: pointer;
+  transition: background .2s, border-color .2s, transform .2s; }
+button:hover, button:focus-visible { background: rgba(140,20,30,.78); border-color: #e8c98e; transform: translateX(-4px); outline: none; }
+button:focus-visible { box-shadow: 0 0 0 2px #e8c98e; }
+button:active { transform: translateX(-4px) scale(.97); }
+button:disabled { color: #b9aeb2; border-color: rgba(185,174,178,.5); background: rgba(20,10,16,.5); transform: none; cursor: default; }
+button[hidden] { display: none; }
+@media (max-width: 720px), (orientation: portrait) {
+  .art, .loop { object-position: 51% 50%; }
+  .shade { background: linear-gradient(0deg, rgba(8,5,12,.9) 0%, rgba(8,5,12,.6) 38%, rgba(8,5,12,0) 62%); }
+  .content { right: 50%; top: auto; bottom: 7vh; transform: translateX(50%); text-align: center; }
+  h1 { font-size: clamp(28px, 9vw, 52px); }
+  .cord { margin: 14px auto 20px; }
+  nav { align-items: center; }
+  button { min-width: 13em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loop { display: none; }
+  button, button:hover, button:focus-visible, button:active { transition: none; transform: none; }
+}
+</style>
+<main class="cover">
+  <img class="art" data-larch-slot="cover" alt="">
+  <img class="loop" data-larch-asset="LOOP_ID" alt="" aria-hidden="true">
+  <div class="shade"></div>
+  <div class="content">
+    <h1 data-larch-slot="title"></h1>
+    <span class="cord" aria-hidden="true"></span>
+    <nav aria-label="遊戲選單">
+      <button data-larch-action="start">開始遊戲</button>
+      <button data-larch-action="continue">繼續遊戲</button>
+      <button data-larch-action="chapters">選擇章節</button>
+    </nav>
+  </div>
+</main>
+<script>
+(function () {
+  var v = document.querySelector('.loop');
+  function shown() { if (v.complete && v.naturalWidth) v.classList.add('is-playing'); }
+  v.addEventListener('load', shown);
+  shown();
+})();
+</script>

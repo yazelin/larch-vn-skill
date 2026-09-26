@@ -35,6 +35,7 @@ Larch 官方在「帳號設定 → AI 輔助」可以產生一份 `larch-story-s
 
 `interface-skills.md`：Larch「Skills」分頁那份 `larch-title-designer` 提示的通用部分（介面契約、寫回方式），
 加上做標題背景影片時實測到的事：傳到 Larch 的影片標題介面讀不到、改用動態 AVIF、怎麼做無接縫循環。
+附 `make_title_loop.sh`（原片一行做成循環 AVIF）、`title-template.html`（標題 HTML 範本）、給影片模型的 prompt 範本。
 
 ## 安裝
 

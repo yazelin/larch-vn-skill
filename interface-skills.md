@@ -83,3 +83,26 @@ ffmpeg -i in.mp4 -i in.mp4 -filter_complex \
 
 **五、自訂標題會取代內建標題的全部圖層。** 原本 `titleScreen.layers` 裡的文字、按鈕都不會出現，
 書名、開始、繼續要自己在 HTML 裡放。標題 BGM（`titleScreen.bgm`）照舊。
+
+## 一條龍：從封面圖到標題動畫（2026-09-26 做過兩部）
+
+**一、叫影片模型把封面動起來。** 鏡頭固定、只動本來會動的元素、結尾回到接近開頭的姿勢，頭尾才接得起來，標題字也不會被構圖變動擋到。換作品只改「Subtle motion only」那一段：
+
+```
+Animate this illustration as a calm, seamless looping cinemagraph. Keep the camera completely static and the composition, framing, character design, face, and art style exactly as in the original image. No zoom, no pan, no new objects, no text.
+
+Subtle motion only:
+- <人物：站著不動、慢慢呼吸、眨一次眼、飄帶／髮絲隨風>
+- <環境：水霧、漣漪、花瓣、燭火、香煙、光裡的浮塵、布簾……>
+
+<背景裡的畫像、剪影要寫明 stay still，免得模型把它們變成會走的人。>
+The motion at the end should return close to the starting pose so the clip can loop.
+```
+
+**二、檢查浮水印。** 實測這類工具產的片右下角會帶一個 ✦ 小星星，標題畫面滿版時看得到，交給作者決定怎麼處理。
+
+**三、一行做成循環 AVIF。** `make_title_loop.sh 原片.mp4 輸出.avif [淡入秒數=1.5] [crf=38]`：讀片長、最後 N 秒淡入開頭、去聲音、轉 AVIF，印出大小與兩個 SSIM。
+實測兩支 10 秒 720p：1.6 MB／1.0 MB；接縫 SSIM 0.83／0.96（相鄰兩格的對照值 0.90／0.98，接縫值接近對照值就看不出來）；畫質 SSIM 0.98。
+
+**四、上傳與寫回。** AVIF 用 `POST /media`（`mimeType: image/avif`、`category: scene`）上傳，拿回 `media:<id>`；
+HTML 從 `title-template.html` 改，換掉 `LOOP_ID`，用 `PUT /interface` 寫回（見上面「存在哪裡、怎麼寫回」）。寫之前請作者關編輯器分頁。
