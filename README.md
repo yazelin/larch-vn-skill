@@ -34,7 +34,7 @@ Larch 官方在「帳號設定 → AI 輔助」可以產生一份 `larch-story-s
 ## 自訂標題畫面與對話框
 
 `interface-skills.md`：Larch「Skills」分頁那份 `larch-title-designer` 提示的通用部分（介面契約、寫回方式），
-加上做標題背景影片時實測到的事：agent 上傳的影片用不了、怎麼做無接縫循環。
+加上做標題背景影片時實測到的事：傳到 Larch 的影片標題介面讀不到、改用動態 AVIF、怎麼做無接縫循環。
 
 ## 安裝
 

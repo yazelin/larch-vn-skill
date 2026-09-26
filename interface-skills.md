@@ -47,15 +47,23 @@ textSize, active, muted, assets`；`assets` 只含 HTML 裡用 `data-larch-asset
 
 ## 實測：標題背景影片（2026-09-26）
 
-**一、agent 上傳的影片進了 Cloudflare Stream，介面用不了。**
-`POST /media`（`mimeType: video/mp4`，`category: video`）回來的 `url` 是
-`https://customer-….cloudflarestream.com/<uid>/iframe`，是播放頁，不是檔案，也沒有 `videoFileUrl`。
+**一、傳到 Larch 的影片都進 Cloudflare Stream，介面用不了。**
+agent `POST /media`（`mimeType: video/mp4`，`category: video`）和網頁媒體庫上傳都試過，
+存下來的 `url` 都是 `https://customer-….cloudflarestream.com/<uid>/iframe`：一個播放頁，不是檔案，也沒有 `videoFileUrl`。
 播放器組 `assets` 時會跳過「`type: video`、沒有 `videoFileUrl`、網址也不是 `.mp4/.webm/.ogg`」的素材，
-所以 `<video data-larch-asset="media:…">` 拿不到 `src`。
-讀前端 bundle 看到網頁上傳走另一條，會把 R2 的檔案網址存成 `videoFileUrl`（`metadata.r2_url`）：
-**當背景用的影片要從網頁媒體庫上傳。**
+所以 `<video data-larch-asset="media:…">` 拿不到 `src`。Stream 的 `downloads/default.mp4` 回 404（沒開下載），
+HLS 在 iframe 裡又不能載外部腳本，也走不通。
+（前端 bundle 裡網頁上傳會讀 `metadata.r2_url` 當 `videoFileUrl`，但實測那筆沒有，不要照程式碼推論。）
 
-**二、背景影片自動播放可以。** iframe 有 `allow="autoplay"`，`muted autoplay loop playsinline` 會自己播。
+**解法：做成動態 AVIF，當圖片上傳。** 圖片走 R2，`<img data-larch-asset="media:…">` 拿得到網址，Web 匯出也會打包。
+8.5 秒 1280×720 24fps，`libsvtav1 -crf 38` 只有 1.6 MB（同一段做成動態 WebP 要 10 MB），跟原片的 SSIM 0.98；
+avif muxer 預設 `-loop 0` 無限循環。Chrome、Firefox、Safari 16.4 以上都會播。
+
+```bash
+ffmpeg -i loop.mp4 -vf "fps=24,format=yuv420p" -c:v libsvtav1 -crf 38 -preset 6 -an -f avif loop.avif
+```
+
+**二、真的有檔案網址的話，背景影片自動播放可以。** iframe 有 `allow="autoplay"`，`muted autoplay loop playsinline` 會自己播（本機用 mp4 驗過）。
 播放器每次套狀態都會把 `audio`、`video` 設成 `muted = state.muted !== false`，`active === false` 時暫停。
 影片不要帶聲音，聲音交給標題 BGM。
 
@@ -70,7 +78,7 @@ ffmpeg -i in.mp4 -i in.mp4 -filter_complex \
  -map "[v]" -an -c:v libx264 -crf 23 -preset slow -pix_fmt yuv420p -movflags +faststart loop.mp4
 ```
 
-**四、影片載入前先顯示封面圖。** `img[data-larch-slot="cover"]` 墊底，影片 `playing` 之後再淡入；
+**四、動態圖載入前先顯示封面圖。** `img[data-larch-slot="cover"]` 墊底，動態圖 `load`（影片是 `playing`）之後再淡入；
 `prefers-reduced-motion` 時不放影片，只留封面圖。
 
 **五、自訂標題會取代內建標題的全部圖層。** 原本 `titleScreen.layers` 裡的文字、按鈕都不會出現，
