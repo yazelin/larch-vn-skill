@@ -36,11 +36,11 @@ button:disabled { color: #b9aeb2; border-color: rgba(185,174,178,.5); background
 button[hidden] { display: none; }
 @media (max-width: 720px), (orientation: portrait) {
   .art, .loop { object-position: 51% 50%; }
-  .shade { background: linear-gradient(0deg, rgba(8,5,12,.9) 0%, rgba(8,5,12,.6) 38%, rgba(8,5,12,0) 62%); }
-  .content { right: 50%; top: auto; bottom: 7vh; transform: translateX(50%); text-align: center; }
+  .cover .shade { background: linear-gradient(0deg, rgba(8,5,12,.9) 0%, rgba(8,5,12,.6) 38%, rgba(8,5,12,0) 62%); }
+  .cover .content { left: auto; right: 50%; top: auto; bottom: 7vh; transform: translateX(50%); text-align: center; }
   h1 { font-size: clamp(28px, 9vw, 52px); }
-  .cord { margin: 14px auto 20px; }
-  nav { align-items: center; }
+  .cover .cord { margin: 14px auto 20px; }
+  .cover nav { align-items: center; }
   button { min-width: 13em; }
 }
 @media (prefers-reduced-motion: reduce) {
