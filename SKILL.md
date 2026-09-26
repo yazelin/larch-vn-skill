@@ -459,12 +459,14 @@ resolution: {width:1920, height:1080}
 `x`/`y`/`width` 是畫面百分比，`size` 也是（字級）：標題約 6.5–8、內文 1.2–1.35、
 按鈕 `size:1.25, width:19`。照 px 填（如 64）會撐爆整個畫面。
 
-**二、標題畫面吃的是第一張卡的背景**，不是 `projectThumbnail`。所以：
+**二、標題畫面的底圖是 `titleCoverImage`，沒設才用第一張卡的背景**，不是 `projectThumbnail`（2026-09-26 讀前端 bundle 確認）。沒設 `titleCoverImage` 時：
 
 | | 放什麼 |
 |---|---|
 | 第一張卡的背景 | 乾淨的封面。**不要把標題燒在圖上**，文字是 layer 畫的 |
 | `projectThumbnail` | 有標題的那張，縮圖要自己站得住 |
+
+**要換成自己寫的 HTML（背景影片、特效）**，用 `settings.customInterfaces.title`，會取代上面這些圖層。契約與實測見 `interface-skills.md`。
 
 ## 選擇卡(2026-09-11 實測)
 
