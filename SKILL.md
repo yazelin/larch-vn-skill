@@ -490,14 +490,21 @@ resolution: {width:1920, height:1080}
   對話卡配第 0 行、**scene 卡配卡片層文字**(voiceUrl 寫在 data 層,播放器會播)。
   `setVariable` 卡回 400,而且**手動把 voiceUrl 寫進卡片層播放器也不播**——
   過場字卡要有聲只能改成對話卡。
-- `/api/agent/voices` 預設只回 40 個英語系統音色;`?limit=200` 才會吐中文/粵語/日語全集
-  (含 tone 欄位)。MiniMax 原生 id(如 `Chinese (Mandarin)_Soft_Girl`)直接餵 voiceId 就吃。
+- `/api/agent/voices` **一次最多回 100 支**(`limit` 給再大也一樣),總共 335 支(2026-09-30),
+  要用 `offset=100`、`offset=200`… 翻頁(`page` 沒有作用),或用 `language=Chinese (Mandarin)` 只看一種語言。
+  回應另外帶 `total`、各語言的 `languages[].count`、可用的 `emotions`(neutral/happy/sad/angry/fearful/
+  surprised/disgusted/calm)和官方選音色建議 `guidance`。MiniMax 原生 id(如
+  `Chinese (Mandarin)_Soft_Girl`)直接餵 voiceId 就吃。
 - **neutral tone 的音色(如 `Sincere_Adult`)句與句之間會漂**——這句成熟女聲、下句中年男聲。
   要穩定就挑 tone=male/female 的,或把喜歡的那句 render 當參考音走本地克隆
   (larch-vn-yori 的 voice/narrator 配方)。
-- **音色清單的組成(2026-09-11 量,`?limit=300` 回 100 支)**:英語 45、中文普通話 34、
-  日語 15、粵語 6。中文那 34 支的 `label` 是中文的(和藹阿姨、直率少年、南方青年…),
-  挑路人配角看名字就夠,不必像本地克隆那樣量 F0。
+- **音色清單的組成(2026-09-30 量)**:英語 45、中文普通話 37、日語 15、粵語 6、韓語 49、
+  西班牙語 47、葡萄牙語 73,其他語言各幾支。(2026-09-11 那次記成「共 100 支、中文 34」是被
+  100 支的上限截斷了,不是全部。)中文的 `label` 是中文的(和藹阿姨、直率少年、南方青年…),
+  `hint` 有一句描述,挑路人配角看名字就夠,不必像本地克隆那樣量 F0。
+  1.9.0 新增三支平台自己的中文音色:`Larch_Mandarin_Uncle`(大叔,低沉微啞)、
+  `Larch_Mandarin_Dad`(爸爸,溫暖可靠)、`Larch_Mandarin_Child`(小孩,tone 是 neutral,
+  照上一條要先試聽會不會漂)。
   日語/英語音色唸中文會走音,要當「外國人受訪」的效果得先試聽。
 - **配出來的音檔網址擋 Python 的預設 User-Agent。** `voiceUrl` 指到
   `pub-*.r2.dev`,`urllib` 直接抓回 **403**,`curl` 同一個網址回 200。
@@ -1116,6 +1123,10 @@ curl -s -H "Authorization: Bearer $KEY" \
 有條件分支的話還要寫一支帶變數狀態的模擬器：照 `set`/`add` 更新變數、照條件挑邊，
 才驗得出哪些卡實際走不到。單純的可達性檢查抓不到。
 
+**有 RPG 地圖卡的話，孤島與死路檢查要把地圖事件算成邊。** RPG 地圖之間的移動、對話、戰鬥
+都寫在地圖事件的 `actions: [{kind:"jump", cardId}]` 裡，不是白板連線（官方範例《雲之王國》
+68 張卡、白板上只有 1 條邊），照連線算會整片誤報。見文末「RPG 地圖卡」。
+
 ## 2026-09-06 番外《白帝城燈影》踩到的四件事
 
 - `GET /projects/:id/preview` 是 **GET**，不是 POST，POST 打過去回 404。
@@ -1303,4 +1314,66 @@ MIT © 林亞澤
 - **BGM 氛圍重於節奏，避免歡樂突兀**：
   內建素材包的吉他曲有時節奏偏輕快歡樂（如獸耳包的《Antlers in the Practice Room》），會破壞壓抑或悲傷場景的沉浸感。
   落日後台、空無一人的劇院等孤獨場景，應選用 Lo-fi 電鋼琴（Rhodes）伴隨微弱脈動與磁帶底噪的慢速氛圍曲（如《Empty Chair Loop》），音量壓在 0.18–0.22 循環播放，整體氛圍才能沉澱下來。
+
+## 2026-09-30 跟上 1.9.0 與 2.0.0
+
+來源：官方更新日誌 `GET https://larch.ink/api/release-notes`（免登入，JSON）＋前端程式＋在 larch-preview
+上用真播放器實播。標「實播」的是跑過的，標「讀程式」的還沒在真專案上跑。
+
+### 台詞上方的小標註（1.9.0，實播）
+
+注音、讀音、外語讀法這類寫在字上方的小字，要把那一句寫成 `runs`，**直接寫在 `text` 裡不會生效**
+（播放器只會從純文字解析 `{變數}`）：
+
+```jsonc
+{"id": "l0", "speaker": "小明", "text": "這個字念作漢字。",          // text 留著純文字，其他工具（配音、比對）讀這個
+ "runs": [{"text": "這個字念作"},
+          {"text": "漢字", "marks": [{"type": "ruby", "value": "かんじ"}]},
+          {"text": "。"}]}
+```
+
+有 `runs` 時播放器用 `runs`，畫成真的 `<ruby>`。`ruby` 標記另外吃 `rubyColor`、`rubySize`（預設 52、上限 90）、
+`rubyHoverOnly`（滑過才顯示），這三個是讀程式的。卡片層（沒有 `dialogueLines` 的卡）寫 `runs` 應該也吃，也是讀程式。
+**配音要餵 `text`，不是 runs 串起來的字**：標註是給眼睛看的，塞進 TTS 會多唸一次。
+
+### 自動前進：等語音、無法打斷（1.9.0）
+
+`autoAdvance` 的 `mode` 有三種：`delay`（等 `delayMs`，預設 1800）、`voice`（等語音播完；沒有配音或
+配音失敗就在字打完後前進，讀程式）、`condition`（變數條件成立才前進，`condition` 的形狀跟邊的條件一樣）。
+
+`"uninterruptible": true` 是編輯器上的「無法打斷」：時間到之前玩家點擊不會補字也不會跳頁。
+**實播**：`{"enabled": true, "mode": "delay", "delayMs": 3000, "uninterruptible": true}`，
+三秒內連點四下都沒反應，時間到自己前進。用在不想讓玩家跳過的演出（片頭、重要台詞）。
+
+### 專案設定兩個新欄位（1.9.0）
+
+- `settings.returnToTitleOnEnd: true`：故事播完回到標題畫面（實播）。
+- `settings.defaultMusicVolume`：專案預設的 BGM 音量，0 到 1 的小數，編輯器以 5% 為一格（讀程式）。
+
+### RPG 地圖卡（2.0.0，讀官方範例＋實播）
+
+平台內建插件 `larch-rpg-system`（作者在「素材商城 → 擴充功能」打開），有兩種卡：`pluginCardId` 為 `map`（地圖）
+與 `battle`（戰鬥）。官方範例《雲之王國》：市集 id `b14a7e2e-c2c0-4ecc-bd3b-98e2edc3ce9b`，
+12 張地圖、11 張戰鬥，外加背包的 `grant-item`。
+
+- 卡片外層就是一般插件卡：`type:"plugin"`、`pluginId:"larch-rpg-system"`、`pluginPresentation:"fullscreen"`、
+  `pluginFrame:{showTitle:false, showButton:false}`，**沒有 `pluginHtml`**，畫面是播放器內建的 RPG 引擎畫的。
+  `bgm`／`bgmVolume`／`bgmLoop` 照常掛在卡片上。
+- 地圖本體在 `pluginValues.map`（一張約兩萬字的 JSON）：`width`／`height`／`tileSize`、`tilesets`（圖塊圖與行列數）、
+  `layers`、`events`、`environment`（燈光、迷霧、天氣）、`hpVariable`／`bagVariable`／`stateVariable`。
+- 事件 `events[]`：`trigger` 是 `touch`（走上去）或 `action`（按鍵調查），有 `conditions`、`once`、`solid`，
+  `actions` 裡 `kind` 有 `jump`（`cardId` 跳到別張卡，換地圖就是這個）、`dialogue`（`text`）等。
+- 全遊戲共用的裝備、技能、連線設定在 `settings.plugins["larch-rpg-system"].settings`：`gear`、`skills`、
+  `online`、`lobby`、`database`（值是 JSON 字串）。
+- 卡片的 `pluginReadVars`／`pluginWriteVars` 要列出地圖會讀寫的變數（範例是 `rpgHp`、`inventory`、`rpgState`、
+  `rpgEquipment` 與劇情旗標），**沒列到的寫入會被靜默丟掉**，跟其他插件卡一樣。
+- RPG 引擎的圖都經過平台的 `/api/media/proxy?url=…` 取得（播放器的網路紀錄看得到）。
+
+**手寫地圖不實際。** 做法跟背包插件一樣：把《雲之王國》remix 到自己帳號，`GET /projects/:id` 抓下來當範本，
+改 `events` 的文字、`cardId` 與變數；地圖形狀在編輯器裡畫（筆刷自動接邊、AI 編排、通行與扣血格子）。
+
+**白板連線幾乎用不到**：範例 68 張卡只有 1 條邊（開場對話接到第一張地圖），其餘全靠地圖事件的 `jump`。
+所以路線模擬、孤島檢查要把 `jump` 算成邊（上面「一定要有的檢查」那節）。
+
+本機預覽：larch-preview 已經跑得動 RPG 地圖（圖塊、角色、像素字型、血條、任務欄都在，2026-09-30 用範例實測）。
 
