@@ -1377,3 +1377,34 @@ MIT © 林亞澤
 
 本機預覽：larch-preview 已經跑得動 RPG 地圖（圖塊、角色、像素字型、血條、任務欄都在，2026-09-30 用範例實測）。
 
+## 2026-10-03 跟上 2.1.0 與 2.2.0
+
+### 官方 Wiki（2.2.0）
+
+16 篇繁中操作說明，免登入：清單 `GET https://larch.ink/api/wiki?lang=zh-Hant`（回 `articles[]`，有 `slug`、`title`、
+`category`），單篇 `GET /api/wiki/<slug>?lang=zh-Hant`（內文在 `blocks[]`，結構跟更新日誌一樣）。網頁在 `/wiki`。
+**它講的是「在編輯器按哪裡」，不談 JSON 欄位**，所以欄位寫法仍以這份 skill 為準；要教使用者自己動手、
+或確認某個功能的官方叫法，查 Wiki。跟 agent 有關的一篇是 `ai-agent-mcp-skills`，裡面提到每張白板都有
+「複製 AI 提示詞」，可以把整張白板的內容交給 AI。
+
+### 背包的「道具管理」（2.2.0，讀程式）
+
+專案裡的道具現在可以集中管理，存在 `settings.plugins["larch-inventory"].settings.items`（陣列；也接受 JSON 字串），
+每件的欄位跟 `grant-item` 卡的 `pluginValues` 一樣（`itemId`、`itemName`、`itemNote`、`itemImage`、`consumable`、
+`effectKind`、`storyNodeId`…）。Wiki 說「改一次，每張給這個道具的卡片都會跟著更新」。
+
+**還沒驗證的是更新發生在哪裡**：是編輯器存檔時把每張卡改掉，還是播放時照清單顯示。舊的取得卡自帶 `pluginHtml`，
+不一定會讀清單。所以**用腳本改道具時，清單和每張同 `itemId` 的取得卡都一起改**，兩種情況都不會錯。
+`hasItem`／`lacksItem` 條件比對的是 `itemId`（沒有 id 時用名稱轉小寫、空白換成 `-`）。
+
+### 其他新欄位與行為
+
+- `settings.clickAnywhereAdvance: true`：點畫面任何地方都能前進（2.1.0，讀程式）。空白鍵與 Enter 一直都能翻頁。
+- 標題畫面的預設樣式改了（2.2.0）：按鈕沒有外框、拿掉說明與「Larch Original Story」字樣、加上音效。
+  沒有自訂標題 layer 的舊作品，外觀應該會跟著變（從更新說明推的，沒有拿舊作品比對過）。
+- 沒有開對話框的卡也會顯示存檔選單（2.2.0）。
+- 卡片布條（2.2.0）：封面可以掛裝飾布條，敏感封面可以加模糊布條，點一下才展開。
+- 重要專案可以上鎖防誤刪（2.2.0，只在網頁選單）。
+- RPG（2.1.0、2.2.0）：共用事件、替換主角、轉盤選項、自訂按鍵、細筆刷（通行區域可以畫更小的格子）。
+  欄位都還沒查，要用時從編輯器建一份再讀回來。
+
