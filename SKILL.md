@@ -1183,6 +1183,11 @@ curl -s -H "Authorization: Bearer $KEY" \
   卡片裡讀不到外面的位置，只能自己在頂端留白：最外層容器 `top: 12vh`。
   驗收寫法：`(await frame.frameElement()).boundingBox().y + 元素的 getBoundingClientRect().top >= 0`
   （2026-10-05 larch-tangshi，本機預覽器與 larch.ink/play 量到一樣的數字）。
+- **`POST /media` 上傳的素材在 `pub-*.r2.dev`，那是 R2 的開發網址：不快取、會限流**（Cloudflare 文件明寫不給正式用）。
+  實測每次抓 0.6～1.7 秒，抓幾次都不會變快。repo 是公開的話，素材改指
+  `https://cdn.jsdelivr.net/gh/<user>/<repo>@<commit>/<路徑>`：熱快取 0.1～0.2 秒，冷的第一次可能要 2～40 秒，推完要先把每個檔抓一次預熱。
+  播放器的背景、立繪、`voiceUrl`、插件卡裡的圖都吃外部網址。**jsDelivr 的 gh 路由對中文檔名回 404**（GitHub raw 正常），素材檔名一律用 ASCII。
+  做法見 larch-tangshi 的 `src/push.py`（`to_cdn`、`prewarm`）（2026-10-06）。
 - **插件要導入「那個專案」才會執行。** 播放器對沒導入的插件卡顯示「這個專案沒有導入這個插件；
   卡片不會執行」。導錯專案不會有任何錯誤，要 `GET /projects/:id` 對 `settings.plugins` 的鍵才看得出來
   （2026-09-08 一次導到舊專案）。
