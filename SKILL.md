@@ -1188,6 +1188,12 @@ curl -s -H "Authorization: Bearer $KEY" \
   `https://cdn.jsdelivr.net/gh/<user>/<repo>@<commit>/<路徑>`：熱快取 0.1～0.2 秒，冷的第一次可能要 2～40 秒，推完要先把每個檔抓一次預熱。
   播放器的背景、立繪、`voiceUrl`、插件卡裡的圖都吃外部網址。**jsDelivr 的 gh 路由對中文檔名回 404**（GitHub raw 正常），素材檔名一律用 ASCII。
   做法見 larch-tangshi 的 `src/push.py`（`to_cdn`、`prewarm`）（2026-10-06）。
+- **插件卡 iframe 不能自動播聲音。** iframe 只有 `allow="microphone *; gamepad *"`、`sandbox="allow-scripts"`，
+  沒有 autoplay，卡片一打開就 `new Audio(u).play()` 會拿到 NotAllowedError（玩家要在卡片裡點一下才行）。
+  要「切到卡片就先念」：在插件卡前放一張對話卡，`voiceUrl` 指音檔、`autoAdvance:{enabled:true, mode:"voice"}`，
+  由播放器本體播（主頁有玩家一路點過來的手勢），念完自動切過去。線上實測點一下後 0.6 秒出現插件卡、發音成功。
+  **用 Playwright 驗自動播放會誤判**：`frame.evaluate` 裡呼叫 `play()` 被當成使用者手勢，會回成功；
+  要在 `addInitScript` 裡包 `HTMLMediaElement.prototype.play`，看頁面自己呼叫時的結果（2026-10-06 larch-tangshi）。
 - **插件要導入「那個專案」才會執行。** 播放器對沒導入的插件卡顯示「這個專案沒有導入這個插件；
   卡片不會執行」。導錯專案不會有任何錯誤，要 `GET /projects/:id` 對 `settings.plugins` 的鍵才看得出來
   （2026-09-08 一次導到舊專案）。
