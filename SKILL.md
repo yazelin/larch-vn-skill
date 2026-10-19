@@ -5,6 +5,8 @@ description: 在 Larch 平台做視覺小說時,補官方 skill 沒寫的那一�
 
 # Larch 視覺小說
 
+**把舊作重寫成 RPG 版**（設計→美術→配音→jsDelivr→推送→介面→16 倍試玩→上架）照 [rewrite-playbook.md](rewrite-playbook.md) 走。
+
 平台在 `https://larch.ink`（2026-08 從 larch.yapiflow.com 搬過來，舊網域回 308 導向：GET 跟得過去，**POST／PUT 不行**，urllib 不跟 308），agent REST 在 `/api/agent/projects/…`，
 金鑰放 `~/.config/larch/key`（chmod 600，**絕對不要寫進專案、卡片、匯出檔或 repo**）。
 

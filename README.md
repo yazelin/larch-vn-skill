@@ -31,6 +31,10 @@ Larch 官方在「帳號設定 → AI 輔助」可以產生一份 `larch-story-s
 所以整包素材上架的正解是「圖在網頁傳、欄位用一次 REST 補」。連 502 的語意都要分操作看——
 `PUT` 是整包覆蓋所以重試無害，`POST /media` 收到 502 卻可能已經寫進去了，直接重試會產生重複。
 
+## 舊作重寫成 RPG 版
+
+`rewrite-playbook.md`：2026-10 重寫《晚霞》《雨幕》《餘燼》整理的流程，從先寫設計給作者拍板、美術順序、配音替身表、素材走 jsDelivr、推送與介面轉色，到 16 倍試玩與上架前備份市集資料。範本程式在 yazelin/larch-sunset、yazelin/larch-rain。
+
 ## 自訂標題畫面與對話框
 
 `interface-skills.md`：Larch「Skills」分頁那份 `larch-title-designer` 提示的通用部分（介面契約、寫回方式），
