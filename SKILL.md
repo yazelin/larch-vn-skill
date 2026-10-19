@@ -1446,3 +1446,20 @@ MIT © 林亞澤
 - RPG（2.1.0、2.2.0）：共用事件、替換主角、轉盤選項、自訂按鍵、細筆刷（通行區域可以畫更小的格子）。
   欄位都還沒查，要用時從編輯器建一份再讀回來。
 
+
+## 2026-10-20 讀別人已發佈的作品與創作者貼文（公開 GET，免登入）
+
+作品頁（`larch.ink/play/market/<handle>/<slug>`、`<name>.larch.games`）和貼文頁（`larch.ink/@<handle>/posts/<slug>`）
+都是前端渲染，curl 或 WebFetch 只拿得到程式殼與簡介。要看內容直接打公開 API（實測，不用 cookie）：
+
+- **作品完整劇本**：`GET https://larch.ink/api/marketplace/by-url/<handle>/<customSlug>?play=1`，
+  或 `/api/marketplace/<gameId>?play=1`。回 JSON：`project.nodes[].data.dialogueLines[]`（`speaker`、`text`）是台詞，
+  `project.edges` 是連線，`updateLog` 有作者的版本說明，`aiUsage`／`aiParts` 是 AI 使用揭露，另有 views／plays／likes／comments 數。
+- **起點與分支**：起點是 `data.start == true` 的節點。沿 edges 走只會走到主線，好感度分支與結局常沒有連在主線上，
+  要另外掃全部 nodes 才讀得到。
+- **創作者貼文**：`GET https://larch.ink/api/creators/<handle>/posts/<slug>`（slug 要 URL 編碼）。
+  內文在 `post.blocks[]`（`heading`／`paragraph`，文字在 `spans[].text`），要模仿貼文格式時用。
+- 這些路徑是從前端 bundle 找的：`/assets/index-*.js` 的路由表 → 懶載入的 `CreatorPostPage-*.js` →
+  `creatorPosts-*.js` 裡的 fetch。找別的端點照同一個順序。
+- 只讀公開 GET，不要拿寫入動詞去探端點。
+- 用途：幫使用者寫別人作品的推薦或評論之前，先抓劇本；引用台詞以劇本原文為準，感受只寫使用者說過的。
