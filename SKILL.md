@@ -5,7 +5,7 @@ description: 在 Larch 平台做視覺小說時,補官方 skill 沒寫的那一�
 
 # Larch 視覺小說
 
-**把舊作重寫成 RPG 版**（設計→美術→配音→jsDelivr→推送→介面→16 倍試玩→上架）照 [rewrite-playbook.md](rewrite-playbook.md) 走。**做 RPG 地圖一律先讀 [rpg-map-playbook.md](rpg-map-playbook.md)**（設計檔→色塊→作者確認→才產圖）。
+**把舊作重寫成 RPG 版**（設計→美術→配音→jsDelivr→推送→介面→16 倍試玩→上架）照 [rewrite-playbook.md](rewrite-playbook.md) 走。**寫劇本台詞前先讀 [improv-playbook.md](improv-playbook.md)（多個 AI 各演一個角色，避免 AI 腔）**；**做 RPG 地圖一律先讀 [rpg-map-playbook.md](rpg-map-playbook.md)**（設計檔→色塊→作者確認→才產圖）。
 
 平台在 `https://larch.ink`（2026-08 從 larch.yapiflow.com 搬過來，舊網域回 308 導向：GET 跟得過去，**POST／PUT 不行**，urllib 不跟 308），agent REST 在 `/api/agent/projects/…`，
 金鑰放 `~/.config/larch/key`（chmod 600，**絕對不要寫進專案、卡片、匯出檔或 repo**）。
