@@ -35,6 +35,10 @@ Larch 官方在「帳號設定 → AI 輔助」可以產生一份 `larch-story-s
 
 `rewrite-playbook.md`：2026-10 重寫《晚霞》《雨幕》《餘燼》整理的流程，從先寫設計給作者拍板、美術順序、配音替身表、素材走 jsDelivr、推送與介面轉色，到 16 倍試玩與上架前備份市集資料。範本程式在 yazelin/larch-sunset、yazelin/larch-rain。
 
+## RPG 地圖
+
+`rpg-map-playbook.md`：做 Larch RPG 地圖的順序（設計檔、色塊給作者確認才產圖），整張原畫當地圖時怎麼剪遮擋層、擋路怎麼跟著畫走，屋內的門與家具，隔著櫃檯說話，還有引擎的上限和會讓整張地圖讀不出來的坑。2026-10 做《十一分鐘》《起跑總在開始前》《香布纏．續》時整理的。
+
 ## 自訂標題畫面與對話框
 
 `interface-skills.md`：Larch「Skills」分頁那份 `larch-title-designer` 提示的通用部分（介面契約、寫回方式），
