@@ -1493,3 +1493,5 @@ MIT © 林亞澤
 - **`settings.customInterfaces` 整包 PUT 會寫進去**（讀回看得到 title 介面）；但介面裡的音效只收 Larch 自己的網址，`/files/…` 的在線上是無聲的。
 - **MCP 的 `larch_get_project` 會回「Agent 專案寫入過於頻繁」**：讀也會被同一個限流擋，改用 REST `GET /api/agent/projects/<id>` 就讀得到。
 - **給作者自己試玩**用 `larch_preview_project`（`hours` 最多 168，免登入、讀當下內容）；`larch_share_link` 是給別人的公開網址，要作者點頭才開。
+- **新增白板後更新上架，要指定要上架哪幾章**：發布設定 `publishedBoardIds` 沿用上次的選擇，後來加的白板不會自動勾進去，`larch_publish_game` 也沒有這個參數（2026-10-29 已回報，fb-8b21eede）。
+  改用 REST `POST /api/agent/projects/<id>/publish` 帶 `{publishedBoardIds:[…], startBoardId, chapterMode:'split', version, updateNote}`。發布後 `GET /api/marketplace/<gameId>?play=1` 看 `project.boards` 確認每一章都在。
