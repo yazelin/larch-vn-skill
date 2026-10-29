@@ -1463,3 +1463,33 @@ MIT © 林亞澤
   `creatorPosts-*.js` 裡的 fetch。找別的端點照同一個順序。
 - 只讀公開 GET，不要拿寫入動詞去探端點。
 - 用途：幫使用者寫別人作品的推薦或評論之前，先抓劇本；引用台詞以劇本原文為準，感受只寫使用者說過的。
+
+## 2026-10-29 《餘燼》重製：全程自動播放的音樂小說
+
+作者要「按下開始就能邊聽歌邊看完、不用點滑鼠」。做法與踩到的事（本機預覽器實測＋推上 Larch 讀回；線上試玩由作者確認）：
+
+- **全程自動播放**：沒有「預設開自動」的專案設定（自動鈕是玩家自己按的）。每張劇情卡掛卡片層
+  `autoAdvance: {enabled:true, mode:'delay', delayMs:2000}`，它對卡裡每一句都生效，計時從字打完才開始。
+  `settings.textSpeed` 是**每個字幾毫秒**（不是每秒幾字）：90 作者嫌慢，55 剛好（約每秒 18 字）。選項卡會停下來等玩家，全劇不要放選項。
+  標題畫面與開頭各放一句「按下開始後全程自動播放」的說明，不然玩家不知道。
+- **對話框拼的歌卡會跟歌對不上**：歌詞靠「打字時間＋固定 delay」估時間，玩家一點、或歌晚一點載入就跑掉。
+  改做一張插件卡「唱歌卡」：歌照舊掛卡片層 `bgm`（播放器本體播，插件 iframe 不能自己出聲），
+  插件收到 `larch:init` 起算秒數、照「秒數｜歌詞」亮字，不吃點擊，唱完送 `larch:complete`，另有「略過」鈕。
+  實測歌詞比播放器下 `play()` 晚約 0.3 秒、點不點都一樣（校正值 0.25 秒補出聲延遲）。實作在 larch-ember 的 `src/plugin/song_card.html`、`src/songs.py`。
+- **自己的插件只給自己用**：`PUT /api/agent/plugins/<id>/draft`（body 就是 manifest）存成個人使用版，不送審、市集看不到；
+  圖用 `POST /api/agent/plugins/images`（`{pluginId,name,mimeType,base64}`）上傳後填進 `cover`、`gallery`。
+  商城頁的 `overview`、`features`（含 En）也要寫，不然「我的素材」裡是空白頁。按鈕、面板照規格放 Larch 的介面 CSS，遊戲美術（歌詞、背景）不受限。
+  卡片型插件在專案裡只要 `settings.plugins[id] = {enabled:true}` 加上每張卡帶 `pluginHtml`、`pluginValues` 就能跑（HUD 才需要 `playback` 快照）。
+  別人的插件（片尾字卷 `credits-roll`）用 `larch_install_plugin` 裝進帳號。
+- **插件卡不吃測試的 `SPEED` 加速**：timewarp 只改到播放器本體，插件 iframe 照真實秒數走。全劇免點試玩的逾時要把歌與片尾字卷的真實秒數加進去。
+- **逐句 BGM 放在第 0 句不會播**：`dialogueLines[0].bgm` 播放器不理，要放卡片層 `data.bgm`。第 1 句以後的逐句 BGM 正常。
+- **最後一張卡別開 `stayOnCard`**：會停在最後一句點了沒反應。專案開著 `returnToTitleOnEnd` 時，拿掉它就會回標題。
+- **片尾**：`credits-roll` 插件卡掛合聲版當卡片 bgm，`speed` 依字卷高度與歌長算（1600×900 下 3450px ÷ 16px/s ≈ 215 秒，對齊 230 秒的歌），`autoContinue` 開著，捲完自己往下。
+- **第二章嵌公開站**：照《續》的製作手記章，片尾卡接 `boardJump` 到第二塊白板，那裡一張 `miniGame` 全螢幕卡，`miniGameHtml` 是一層 iframe 殼指向 GitHub Pages。
+  看完按「略過」就結束。讀回比對只比第一塊白板時，第二塊要另外讀回確認。
+- **素材放 jsDelivr 要用孤兒 tag**（做法見 larch-preview SKILL.md）：這個 repo 一個 commit 有幾百 MB，直接用 `@<commit>` 有些檔回 403（91 個裡 3 個）。
+  遊戲用到的 49 MB 拆成圖、聲音兩包；tag 名帶 tree 雜湊，素材沒改就沿用同一個 tag、網址不變。不要改用 GitHub Pages 放素材（作者的網路連 Pages 只有 50–90KB/s），
+  也不要另開 gh-pages 分支（作者：佔 git 空間）；公開站 HTML 用 Pages 從 `master/docs` 發，圖與音樂一樣走孤兒 tag。實作在 larch-ember 的 `src/push.py`、`site/cdn.py`。
+- **`settings.customInterfaces` 整包 PUT 會寫進去**（讀回看得到 title 介面）；但介面裡的音效只收 Larch 自己的網址，`/files/…` 的在線上是無聲的。
+- **MCP 的 `larch_get_project` 會回「Agent 專案寫入過於頻繁」**：讀也會被同一個限流擋，改用 REST `GET /api/agent/projects/<id>` 就讀得到。
+- **給作者自己試玩**用 `larch_preview_project`（`hours` 最多 168，免登入、讀當下內容）；`larch_share_link` 是給別人的公開網址，要作者點頭才開。
