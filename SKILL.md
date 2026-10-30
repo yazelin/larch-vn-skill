@@ -909,8 +909,15 @@ two-pass**（`measured_*` + `linear=true`）。單次 `loudnorm` 是動態的，
 `settings.cgGalleryItems` 是畫廊清單，`{url, title, locked}`。**`locked` 要自己一張一張設**，
 漏掉的話玩家一開遊戲就在畫廊裡看得到，等於劇透。
 
-解鎖靠 `setVariable` 卡的 `cgOps: [{mode:"unlock", url}]`，**只有這個型別的卡吃 `cgOps`**，
-搬不到對話卡上。
+解鎖靠卡片的 `cgOps: [{id, mode:"unlock", url}]`。**2026-10-30 起播放器在 `setVariable`、`scene`、
+`dialogue` 三種卡都會執行 `cgOps`**（讀播放器程式確認，分享連結實測：進到那張對話卡，
+`localStorage["larch-cg-<專案id>"]` 就記下那張圖），對話卡上直接帶就好，不用另外插一張變數卡。
+
+**清單本身現在不必走整份 PUT。** 官方回覆（回饋單 fb-3414ad61，2026-10-30）：`larch_project_settings`
+的 `changes` 收 `cgGallerySource`（picked／auto）、`addCgGalleryItems`（`[{url, title, locked, conditionKey}]`，
+只收 https，已有的網址略過，重跑不會重複）、`removeCgGalleryItems`（網址清單）、`cgGalleryItems`（整份取代，
+最多 500 張）。工具 schema 沒列這幾個也照樣收。**這只有 MCP 工具，文件沒有對應的 REST 端點**，
+CI 裡用 REST 金鑰的排程碰不到。沒設定時 `cgGalleryEnabled` 等於開著、來源是 auto，會把所有卡片背景收進去。
 
 **這種卡的 `text` 不能留空。** 播放器的自動前進條件是
 `!(L === "card" || String(text||"").trim()) && X(...)`——`text` 空白時只有非卡片模式才會

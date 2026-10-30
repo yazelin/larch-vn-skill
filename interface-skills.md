@@ -118,5 +118,11 @@ CSP 允許 `style-src https:`、`font-src https:`，可以 `@import` Google Font
 **二、介面 iframe 的 sandbox 只有 `allow-scripts`。** `<a target="_blank">` 點了不會開新分頁，也不能導覽上層頁面；
 miniGame 卡的 iframe 也一樣。不要在介面或小遊戲裡放外部連結按鈕，網址改放專案介紹或市集頁。外部圖片可以載（`img-src https:`）。
 
+要放能點的外部連結，用舞台道具（或角色、影片）的 `clickAction: {kind:"link", linkUrl, label, showLabel:false}`，
+由播放器自己 `window.open`，不受框的限制（2026-10-30 分享連結實測：開新分頁，點了不會換下一句）。幾個實測細節：
+道具的 `x`、`y` 是百分比，對的是圖的中心；能點的只有 `.stage-prop-inner` 那層圖；圖的像素大小不隨畫面縮放
+（1600 寬與 844 寬都是同樣大），手機上位置會偏；**畫面最上方約 35px 不要放**，滑鼠一動播放器的上方控制列就出來，
+把點擊吃掉。對話卡每一句的 `stage` 都要帶同一個道具，不然換句就消失。
+
 **三、分享連結（`/play/<token>`）讀的是刷新當下的快照。** 改完介面要再刷新一次分享連結（`POST …/share-link`），玩家才看得到；
 用分享連結驗收前先確認刷新過。
