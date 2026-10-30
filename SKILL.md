@@ -95,12 +95,21 @@ agy 剛註冊完的**第一個** session 可能看不到工具（快取還沒寫
 - 回傳 `confident: false` 並附 `ticketId`：Mana 在文件裡找不到可靠答案，已經自動開回饋單給真人跟進。
   **這時不要照它猜的答案改專案**，等那張單的真人回覆。
 - 需要平台加功能的問題，答案最後會叫你改用 `larch_send_feedback` 開單。
+- 兩題至少隔 10 秒；回傳另有 `remainingToday`（今天還剩幾題）和 `needsPlatformChange`（要平台加功能才做得到，**不會**自動開單）。
+- **一題裡只要有一小點答不出來，整題就是 `confident: false`，而且會自動開一張回饋單。**（2026-10-30 實測：問上架四件事，
+  只有「能不能不通知追蹤者」答不出來，就開了 fb-f8debc75。）確定的事和沒把握的事分開問，不然每問一次就多一張單。
 - 低信心時 Mana 會自動用這個帳號開回饋單，所以問題裡不要放不想讓官方看到的內容。`larch_send_feedback` 是用作者帳號對外發言，送出前要作者同意。
 
 官方已經把 CG 收藏預設值和「哪些 API 是局部修改」寫進 Agent／MCP 使用須知（實測版本 dae8ea53）：
 `cgGalleryEnabled` 沒設等於開；`cgGallerySource` 預設 auto（收每張卡背景和媒體庫圖片，不含立繪與介面素材，同網址算一張，
 auto 時不看 `cgGalleryItems`）；`cgGalleryDownload` 預設開。改設定用 `larch_project_settings` 或 `PATCH .../settings`，
 不要用 `larch_replace_project` 或整份 PUT。
+
+REST 重新上架（Mana 回答，版本 dae8ea53，2026-10-30）：`POST /api/agent/projects/:id/publish`，body 用 `description`、
+`publishedBoardIds`、`startBoardId`、`updateNote`（支援 Markdown，會寫進更新紀錄，也會放進追蹤者通知）。沒帶的欄位
+（`chapterMode`、封面、標籤、AI 揭露、remix）沿用上一次上架。成功回 `{game}`；400 多半是第一次上架沒帶 AI 揭露
+（`AI_DISCLOSURE_REQUIRED`）或格式錯，401／403 是金鑰無效或沒有 publish 權限，404 是找不到專案。
+目前查不到「這次更新不通知追蹤者」的欄位（已轉真人，fb-f8debc75）。
 
 ## AI 操作測試專案與防護標籤規範（沙盒守衛）
 
