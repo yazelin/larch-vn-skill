@@ -106,3 +106,17 @@ The motion at the end should return close to the starting pose so the clip can l
 
 **四、上傳與寫回。** AVIF 用 `POST /media`（`mimeType: image/avif`、`category: scene`）上傳，拿回 `media:<id>`；
 HTML 從 `title-template.html` 改，換掉 `LOOP_ID`，用 `PUT /interface` 寫回（見上面「存在哪裡、怎麼寫回」）。寫之前請作者關編輯器分頁。
+
+## 實測：字型、連結與分享連結快照（2026-10-30，《格莉奇日記》）
+
+**一、播放器會把專案字型強制套到自訂介面。** iframe 根元素帶行內樣式 `--larch-project-font:"Noto Serif TC",…`，
+另有一條看不到的樣式 `.larch-project-font body, .larch-project-font body * { font-family: var(--larch-project-font) !important }`，
+自己寫 `.box * {font-family:… !important}` 會輸（對方選擇器較具體）。要換字型就覆寫變數本身：
+`html{--larch-project-font:"Noto Sans TC",…,sans-serif!important}`（樣式表的 !important 贏過行內的非 important）。
+CSP 允許 `style-src https:`、`font-src https:`，可以 `@import` Google Fonts。
+
+**二、介面 iframe 的 sandbox 只有 `allow-scripts`。** `<a target="_blank">` 點了不會開新分頁，也不能導覽上層頁面；
+miniGame 卡的 iframe 也一樣。不要在介面或小遊戲裡放外部連結按鈕，網址改放專案介紹或市集頁。外部圖片可以載（`img-src https:`）。
+
+**三、分享連結（`/play/<token>`）讀的是刷新當下的快照。** 改完介面要再刷新一次分享連結（`POST …/share-link`），玩家才看得到；
+用分享連結驗收前先確認刷新過。
