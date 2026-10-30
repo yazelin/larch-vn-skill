@@ -795,10 +795,19 @@ host 回 `{type:'larch:init', plugin, card, values, variables, assets, character
 卡片裡，所以自己的專案直接寫這兩處就跑得起來。fullscreen 卡會蓋整個視窗、
 `pluginSkippable:true` 時平台在右下角畫「略過」鈕。
 
-**常駐 UI 沒有介面**：右上角那顆常駐 HUD 是播放器寫死給 `larch-inventory` 的
-（按鈕圖 `buttonImage`、開關 `hudEnabled` 都在 `settings.plugins["larch-inventory"].settings`），
-第三方插件只有「卡片」一種表面。要常駐入口只能拿背包道具的 `storyNodeId` 跳卡近似
-（跳走回不到原處），或跟官方提需求。
+**常駐 UI（HUD）現在開放給第三方插件了**（2026-10 起，規格見 `larch_plugin_spec` 的「遊戲常駐 UI」）。
+舊的背包 HUD 仍是寫死給 `larch-inventory` 的（`settings.plugins["larch-inventory"].settings`）。
+2026-10-30 做《格莉奇日記》的格莉奇手機（角落頭像，點開跟 AI 聊天）實測：
+- **不必在編輯器導入，可以用 API 直接裝**：寫 `settings.plugins[<id>] = {enabled:true, playback:{version, permissions,
+  huds:[{id,title,anchor,width,height,offsetX,offsetY,interactive,readVariables,writeVariables,html}], defaults:{}}}`，
+  再把 HUD 讀寫的變數加進 `project.variables`。這兩處只有整份 `PUT /projects/:id` 寫得到（見下一條）。分享連結照常顯示。
+  讀回來的 `settings.plugins[<id>]` 跟寫進去的一模一樣，拿來比對「要不要再推」是穩定的，不會每次都不同。
+- **標題畫面不顯示 HUD**，進了白板（月曆小遊戲卡、對話卡）才出現。
+- **HUD 拿不到讀者名字**：`larch:hud:init` 只有 `values, variables, cardId, boardId, locale, theme, active`。要名字就自己問、存進變數。
+  `cardId` 可以拿來判斷讀者在哪一頁，再 `fetch` 外部資料當 AI 的背景（GitHub Pages 有 `access-control-allow-origin: *`，從框裡讀得到）。
+- **框只有 `allow-scripts`，沒有 `allow-forms`，`<form>` 的 submit 永遠不會觸發**，按 Enter、按送出鈕都沒反應，也不報錯。
+  輸入框要自己接 `keydown`（Enter 且不是 `isComposing`，不然注音選字會被當成送出）與按鈕 `click`。
+- 展開／收起用 `{type:'larch:hud:resize', width, height}`（32–640）。框內點擊與打字不會讓台詞換下一句，`clickAnywhereAdvance` 開著也一樣。
 
 **驗收技巧**：每次 `larch:set` 播放器都立刻寫進 `localStorage["larch-player-vars-<專案id>"]`，
 外層文件讀得到——iframe 內部讀不到沒關係，斷言下在這裡加截圖就夠。
@@ -905,6 +914,11 @@ two-pass**（`measured_*` + `linear=true`）。單次 `loudnorm` 是動態的，
 **改這兩處要走 `PUT /projects` 那條路，而它會清空版子**（見上面「專案本身」那節），
 所以流程是：抓版子 → PUT 專案 → 用抓下來那一份把版子原樣推回去 → 回讀比對卡數與連線數。
 
+**整份 `PUT /api/agent/projects/:id` 的 body 要包成 `{"project": {...}}`**，直接送專案物件回
+`400 {"error":"project 必須是完整專案物件"}`（2026-10-30 實測，被拒時什麼都沒寫）。
+專案簡介（`description`，標題畫面的 description slot 顯示它）沒有局部寫入的工具，也只能走這條：
+先 GET 整份、只換要改的欄位、帶 GET 回來的 ETag 當 `If-Match` 推回，推完把白板重推一次再回讀核對白板數。
+
 
 `settings.cgGalleryItems` 是畫廊清單，`{url, title, locked}`。**`locked` 要自己一張一張設**，
 漏掉的話玩家一開遊戲就在畫廊裡看得到，等於劇透。
@@ -916,8 +930,11 @@ two-pass**（`measured_*` + `linear=true`）。單次 `loudnorm` 是動態的，
 **清單本身現在不必走整份 PUT。** 官方回覆（回饋單 fb-3414ad61，2026-10-30）：`larch_project_settings`
 的 `changes` 收 `cgGallerySource`（picked／auto）、`addCgGalleryItems`（`[{url, title, locked, conditionKey}]`，
 只收 https，已有的網址略過，重跑不會重複）、`removeCgGalleryItems`（網址清單）、`cgGalleryItems`（整份取代，
-最多 500 張）。工具 schema 沒列這幾個也照樣收。**這只有 MCP 工具，文件沒有對應的 REST 端點**，
-CI 裡用 REST 金鑰的排程碰不到。沒設定時 `cgGalleryEnabled` 等於開著、來源是 auto，會把所有卡片背景收進去。
+最多 500 張）。工具 schema 沒列這幾個也照樣收。同一天官方也開了 REST（排程可用）：
+`GET /api/agent/projects/:id/settings` 回 `{projectId, settings, revision}`；
+`PATCH /api/agent/projects/:id/settings` body `{summary, changes}`，`changes` 跟上面同一套白名單，
+**要帶 `If-Match: "<revision>"`**（或 body 的 `expectedRevision`）：沒帶 428、不是最新 412、多了欄位 400 且什麼都不寫。
+做法是每次先 GET 拿 revision 再 PATCH。沒設定時 `cgGalleryEnabled` 等於開著、來源是 auto，會把所有卡片背景收進去。
 
 **這種卡的 `text` 不能留空。** 播放器的自動前進條件是
 `!(L === "card" || String(text||"").trim()) && X(...)`——`text` 空白時只有非卡片模式才會
