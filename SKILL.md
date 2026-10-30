@@ -807,6 +807,11 @@ host 回 `{type:'larch:init', plugin, card, values, variables, assets, character
   `cardId` 可以拿來判斷讀者在哪一頁，再 `fetch` 外部資料當 AI 的背景（GitHub Pages 有 `access-control-allow-origin: *`，從框裡讀得到）。
 - **框只有 `allow-scripts`，沒有 `allow-forms`，`<form>` 的 submit 永遠不會觸發**，按 Enter、按送出鈕都沒反應，也不報錯。
   輸入框要自己接 `keydown`（Enter 且不是 `isComposing`，不然注音選字會被當成送出）與按鈕 `click`。
+- **跨週目保留的變數**：`project.variables[]` 的變數帶 `persistent: true`，回到標題、重新開始都不重置
+  （編輯器的「玩家變數」裡叫「跨週目保留」，讀者可在遊戲設定裡「重置週目紀錄」）。HUD 的 `larch:hud:init` 會帶到上一輪的值，
+  2026-10-30 實測重新整理後從標題重來，名字與對話都還在。變數範圍只分專案／白板，跨週目是另一個開關，別搜「scope」就以為沒有。
+- **HUD 寫字串變數上限 10 萬字**：播放器收到 `larch:set` 的字串超過 `1e5` 就整筆丟掉，不報錯。存對話紀錄這類會長大的東西，自己先砍到上限以內。
+- **框要比內容大**：HUD 的框外畫不出東西，`box-shadow`、光暈貼著框邊會被切掉。內容每邊內縮 12px 左右，框的 offset 往外挪同樣距離。
 - 展開／收起用 `{type:'larch:hud:resize', width, height}`（32–640）。框內點擊與打字不會讓台詞換下一句，`clickAnywhereAdvance` 開著也一樣。
 
 **驗收技巧**：每次 `larch:set` 播放器都立刻寫進 `localStorage["larch-player-vars-<專案id>"]`，
