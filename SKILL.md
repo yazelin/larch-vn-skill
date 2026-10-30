@@ -81,6 +81,27 @@ agy 剛註冊完的**第一個** session 可能看不到工具（快取還沒寫
 金鑰的權限是分項的（讀取／編輯／素材／AI 生成／匯出／版本／預覽／發佈），
 在同一頁勾。**403 說少了某個 scope 是設定問題，不是 bug**，請作者去開那個開關，不要繞路。
 
+## 不確定就先問客服 Mana：`larch_ask`（2026-10-30 上線）
+
+文件沒寫的地方（欄位預設值、哪個 API 能安全局部修改、平台實際怎麼判），先問官方的客服 Mana，不要猜，也不要翻前端打包檔就動手。
+（回饋單 fb-46e200eb，官方回覆 2026-10-30）
+
+- MCP：`larch_ask`，參數 `question`（必填，最多 1000 字）、`projectId`（選填）。`larch.ink/mcp` 和 `larch.ink/mcp/app` 都有。
+  已經連著的連接器要重新連接或重新整理工具清單才看得到。
+- REST：`POST /api/agent/ask`，body 同上，排程也能用。
+- **每個帳號每天 20 題**，問之前先把問題寫完整，一次問清楚。
+- 回傳帶 `sources`（依據的文件段落名稱）和 `version`（上線版本 commit 短碼）。記進這份 skill 時一起寫上版本；
+  之後再查到 `version` 不同，代表平台改版了，要重問。
+- 回傳 `confident: false` 並附 `ticketId`：Mana 在文件裡找不到可靠答案，已經自動開回饋單給真人跟進。
+  **這時不要照它猜的答案改專案**，等那張單的真人回覆。
+- 需要平台加功能的問題，答案最後會叫你改用 `larch_send_feedback` 開單。
+- 低信心時 Mana 會自動用這個帳號開回饋單，所以問題裡不要放不想讓官方看到的內容。`larch_send_feedback` 是用作者帳號對外發言，送出前要作者同意。
+
+官方已經把 CG 收藏預設值和「哪些 API 是局部修改」寫進 Agent／MCP 使用須知（實測版本 dae8ea53）：
+`cgGalleryEnabled` 沒設等於開；`cgGallerySource` 預設 auto（收每張卡背景和媒體庫圖片，不含立繪與介面素材，同網址算一張，
+auto 時不看 `cgGalleryItems`）；`cgGalleryDownload` 預設開。改設定用 `larch_project_settings` 或 `PATCH .../settings`，
+不要用 `larch_replace_project` 或整份 PUT。
+
 ## AI 操作測試專案與防護標籤規範（沙盒守衛）
 
 **所有由 AI / Agent 進行測試、壓測、臨時操作的 Larch 專案，必須在設定中包含 `AI測試用` 標籤：**
