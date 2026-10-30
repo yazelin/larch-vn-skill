@@ -1532,3 +1532,16 @@ MIT © 林亞澤
   把新白板的 id 一起放進 `publishedBoardIds` 重新上架就會公開；沒帶照舊沿用上次的設定。`larch_list_published` 也看得到目前公開哪些白板。
   MCP 工具規格是連線時抓的，舊的工作階段看不到新參數，那時改用 REST `POST /api/agent/projects/<id>/publish` 帶同樣的欄位。
   發布後 `GET /api/marketplace/<gameId>?play=1` 看 `project.boards` 確認每一章都在。
+
+## 動態封面（GIF）
+
+專案縮圖（`settings.projectThumbnail`）與市集封面都可以用會動的 GIF，播放器與市集直接拿原檔顯示
+（市集上已有作品用 19.5MB 的 GIF 當封面）。2026-10-30《格莉奇日記》的做法：
+- 封面排成 HTML，把網站上會動的角色（glitch-2d 的透明舞台 `?overlay=1&view=full`）用 iframe 疊上去，
+  用 Chrome DevTools Protocol 的 `Page.startScreencast`（`format:'png'`）逐格擷取，再照時間戳抽成 12fps。
+  playwright 的 `recordVideo` 要另外下載 ffmpeg，本機沒有就用這條。
+- **內嵌的透明頁要跟外層頁面的 `color-scheme` 一致**，不然瀏覽器會在 iframe 底下鋪一層不透明的黑或白。外層加 `:root{color-scheme:dark}` 就透了。
+- GIF 用 ffmpeg 兩段式：`palettegen=stats_mode=full` 先算整段的調色盤，再 `paletteuse=dither=bayer:bayer_scale=5`。
+  PIL 拿單一格當調色盤會讓別格的顏色跑掉；`sierra2_4a` 抖色大一倍、色塊邊緣比較糊。960×540、84 格約 3.4MB。
+  有損擷取（JPEG）的每格雜訊會讓靜止區域也被當成變動，檔案大好幾倍，要用 PNG。
+- 市集卡片會把封面縮很小：主標以外的字至少要 40px（1280 寬的版面）才看得清楚，副標壓成一行。
