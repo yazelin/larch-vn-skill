@@ -59,7 +59,7 @@
 ## 8. 上架：先備份市集資料，一定帶簡介
 
 - 上架前 `curl https://larch.ink/api/marketplace/<market id>` 存一份（description、screenshots、customSlug）。
-- `larch_publish_game` **沒帶 description 會換成專案的 project.description**，不會沿用上一版；**作品網址 customSlug 工具設不了，上架後會不見**，只能作者從網頁表單重設。預覽圖不會動。
+- `larch_publish_game` **沒帶 description 會換成專案的 project.description**，不會沿用上一版；**作品網址 customSlug 工具設不了，上架後會不見**，只能作者從網頁表單重設。（2026-10-30 另有新的「作品網站」`site`（`<handle>-<名稱>.larch.games`），也只能網頁設，但用工具重新上架**不會**掉，實測過。）預覽圖不會動。
 - 只改商店資訊用 `larch_update_listing`（不發版、不通知追蹤者）。
 - 更新說明要寫（version＋updateNote），文字過 speak-tw。作者玩過說可以才上架。
 
