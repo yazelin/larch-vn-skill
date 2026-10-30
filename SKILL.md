@@ -939,7 +939,12 @@ two-pass**（`measured_*` + `linear=true`）。單次 `loudnorm` 是動態的，
 `GET /api/agent/projects/:id/settings` 回 `{projectId, settings, revision}`；
 `PATCH /api/agent/projects/:id/settings` body `{summary, changes}`，`changes` 跟上面同一套白名單，
 **要帶 `If-Match: "<revision>"`**（或 body 的 `expectedRevision`）：沒帶 428、不是最新 412、多了欄位 400 且什麼都不寫。
-做法是每次先 GET 拿 revision 再 PATCH。沒設定時 `cgGalleryEnabled` 等於開著、來源是 auto，會把所有卡片背景收進去。
+做法是每次先 GET 拿 revision 再 PATCH。
+**工作台分類也在這個設定端點**（回饋單 fb-1c6d0776，2026-10-30 開放）：`settings.organization = {tags, stage, genres}`，
+`larch_list_projects`／`GET /api/agent/projects` 每個專案也帶 `organization`。改法：`changes.addTags`／`removeTags` 只增減標籤；
+`changes.organization` 只改有給的欄位，`tags` 有給就整份換掉。建立專案時 `larch_create_project`／`POST /projects` 可直接帶 `tags`。
+名稱最多 48 字、一行，大小寫與全半形視為同一個；只有擁有者的金鑰能改，共享專案回 403 `PROJECT_OWNER_REQUIRED`。
+加標籤前先列一次專案，沿用作者已經在用的名字（例如格莉奇系列用「格莉奇」），不要自己發明新分類。沒設定時 `cgGalleryEnabled` 等於開著、來源是 auto，會把所有卡片背景收進去。
 
 **這種卡的 `text` 不能留空。** 播放器的自動前進條件是
 `!(L === "card" || String(text||"").trim()) && X(...)`——`text` 空白時只有非卡片模式才會
