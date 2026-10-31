@@ -105,11 +105,21 @@ agy 剛註冊完的**第一個** session 可能看不到工具（快取還沒寫
 auto 時不看 `cgGalleryItems`）；`cgGalleryDownload` 預設開。改設定用 `larch_project_settings` 或 `PATCH .../settings`，
 不要用 `larch_replace_project` 或整份 PUT。
 
-REST 重新上架（Mana 回答，版本 dae8ea53，2026-10-30）：`POST /api/agent/projects/:id/publish`，body 用 `description`、
-`publishedBoardIds`、`startBoardId`、`updateNote`（支援 Markdown，會寫進更新紀錄，也會放進追蹤者通知）。沒帶的欄位
-（`chapterMode`、封面、標籤、AI 揭露、remix）沿用上一次上架。成功回 `{game}`；400 多半是第一次上架沒帶 AI 揭露
-（`AI_DISCLOSURE_REQUIRED`）或格式錯，401／403 是金鑰無效或沒有 publish 權限，404 是找不到專案。
-目前查不到「這次更新不通知追蹤者」的欄位（已轉真人，fb-f8debc75）。
+REST 重新上架（真人官方回覆 fb-f8debc75，2026-10-30；Mana 先給的答案有一點是錯的，見最後）：
+`POST /api/agent/projects/:id/publish`，body 用 `description`、`publishedBoardIds`、`startBoardId`、`chapterMode`、
+`updateNote`（最多 2000 字，寫進更新紀錄，也放進追蹤者通知）、`version`（沒帶就用發布次數當版號）、`notifyFollowers`。
+- **沒帶會沿用上一次**：標題、介紹、封面、標籤、remix、AI 揭露、截圖、作者名單、關聯作品、自訂作品網址、活動投稿、
+  卡片布條與特效、公開狀態，以及（修正後）`publishedBoardIds`、`startBoardId`、`chapterMode`。
+- **沒帶會被清掉**：`itchUrl`（要保留就每次帶）。`updateNote` 沒帶就沒有更新說明。
+- 例外：上次公開的白板全刪了，會改公開所有有內容的白板；起始白板不在公開清單裡，改用第一個公開白板。
+- **通知**：預設通知追蹤作者和追蹤作品的人。`notifyFollowers: false` 這次就不通知，只對這一次有效。
+  只改商店資訊用 **`PATCH` 同一個網址**，不重新上架、不通知。
+- 回應：更新回 200 `{updated: true, game}`，第一次上架回 201。400 是 `AI_DISCLOSURE_REQUIRED`／`INVALID_CHAPTER_MODE`／
+  `INVALID_NOTIFY_FOLLOWERS` 這類格式錯；401 金鑰無效或沒帶；403 缺 publish 或 read 權限、或不是擁有者；404 找不到專案；
+  409 同時有其他更新、活動已截止；422 NSFW；429 每分鐘超過 12 次；503 平台暫停投稿。
+- **更正**：Mana 說 `chapterMode` 會沿用，當時是錯的。2026-10-30 以前 REST 上架會**忽略** `publishedBoardIds`、
+  `startBoardId`、`chapterMode`，每次都公開全部白板、章節模式被重設成 split。官方同一天修好。之前用 REST 上架過的作品，
+  帶一次想要的設定重新上架，之後才會照著沿用。教訓：Mana 回 `confident: false` 時，連它講得很肯定的那幾點也不能信。
 
 ## AI 操作測試專案與防護標籤規範（沙盒守衛）
 
