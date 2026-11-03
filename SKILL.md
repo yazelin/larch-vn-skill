@@ -111,6 +111,10 @@ REST 重新上架（真人官方回覆 fb-f8debc75，2026-10-30；Mana 先給的
 - **沒帶會沿用上一次**：標題、介紹、封面、標籤、remix、AI 揭露、截圖、作者名單、關聯作品、自訂作品網址、活動投稿、
   卡片布條與特效、公開狀態，以及（修正後）`publishedBoardIds`、`startBoardId`、`chapterMode`。
 - **沒帶會被清掉**：`itchUrl`（要保留就每次帶）。`updateNote` 沒帶就沒有更新說明。
+- **第一次上架一定要帶 AI 揭露，REST 跟 MCP 的欄位名稱不一樣**（2026-11-03《優理的圖文日記》實測）：MCP 的
+  `larch_publish_game` 用 `aiDisclosure: {mode: "heavy"}`；REST 的 `POST /publish` 照 MCP 寫法送會回 400
+  `AI_DISCLOSURE_REQUIRED`，要改用 `aiUsage: "heavy"`（或 `"none"`），逐項勾選用 `aiParts: ["story", "portrait", …]`。
+  400 時沒有發布出去，改欄位重送即可。
 - **簡介上限兩邊不一樣（2026-11-03 實測，回報 fb-45283f86）**：`larch_publish_game` 的 `description` 最多 1200 字，`larch_update_listing` 最多 8000 字，商店頁顯示得出 1650 字。簡介超過 1200 字就分兩步：先上架不帶 `description`，再用 `update_listing` 補簡介（不算新版本、不通知）。
 - 例外：上次公開的白板全刪了，會改公開所有有內容的白板；起始白板不在公開清單裡，改用第一個公開白板。
 - **通知**：預設通知追蹤作者和追蹤作品的人。`notifyFollowers: false` 這次就不通知，只對這一次有效。
