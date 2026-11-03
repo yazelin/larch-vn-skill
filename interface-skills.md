@@ -19,6 +19,7 @@ settings.customInterfaces = {
 - REST：`GET /api/agent/projects/<id>`，然後 `PUT /api/agent/projects/<id>/interface`，
   body `{"surface":"title","html":"…","enabled":true,"expectedHtml":"剛讀到的 html，沒有就空字串","summary":"…"}`。
 - `expectedHtml` 是樂觀鎖，409 表示有人改過，重讀再整合。**不要為了改介面去 PUT 整份專案。**
+- **現在的介面只能從 `GET /projects/<id>` 讀**（`project.settings.customInterfaces`）。`GET /projects/<id>/settings` 不帶這個欄位（2026-11-03 實測），從那裡讀會拿到空字串，送出去的 `expectedHtml` 對不上，每次都回 409「介面已更新，請重新讀取後整合修改」，看起來像有人改過，其實沒有。
 - 伺服器覆寫前會留完整專案的復原副本。寫完重新 GET 核對。
 - 跟改版子一樣，**作者的編輯器分頁開著會把舊版存回去**，寫之前請作者關分頁，發佈前硬重新整理。
 
