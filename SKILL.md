@@ -115,7 +115,7 @@ REST 重新上架（真人官方回覆 fb-f8debc75，2026-10-30；Mana 先給的
   `larch_publish_game` 用 `aiDisclosure: {mode: "heavy"}`；REST 的 `POST /publish` 照 MCP 寫法送會回 400
   `AI_DISCLOSURE_REQUIRED`，要改用 `aiUsage: "heavy"`（或 `"none"`），逐項勾選用 `aiParts: ["story", "portrait", …]`。
   400 時沒有發布出去，改欄位重送即可。
-- **簡介上限兩邊不一樣（2026-11-03 實測，回報 fb-45283f86）**：`larch_publish_game` 的 `description` 最多 1200 字，`larch_update_listing` 最多 8000 字，商店頁顯示得出 1650 字。簡介超過 1200 字就分兩步：先上架不帶 `description`，再用 `update_listing` 補簡介（不算新版本、不通知）。
+- **簡介上限（fb-45283f86，2026-11-03 官方已修）**：`larch_publish_game` 的 `description` 以前限 1200 字（舊限制），現在跟 `larch_update_listing` 一樣都是 8000 字，帶完整簡介上架即可。
 - 例外：上次公開的白板全刪了，會改公開所有有內容的白板；起始白板不在公開清單裡，改用第一個公開白板。
 - **通知**：預設通知追蹤作者和追蹤作品的人。`notifyFollowers: false` 這次就不通知，只對這一次有效。
   只改商店資訊用 **`PATCH` 同一個網址**，不重新上架、不通知。
