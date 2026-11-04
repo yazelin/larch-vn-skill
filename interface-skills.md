@@ -144,3 +144,15 @@ miniGame 卡的 iframe 也一樣。不要在介面或小遊戲裡放外部連結
   日記頁的四格漫畫被切掉一半，立繪還疊在上面。`contain` 會顯示整張，手機上再把對話框的字縮小，就不會蓋到頁面。
 - **本機預覽要看還沒推上去的介面素材**，把 HTML 裡的 Pages 網址換成 `/files/…`：
   介面 iframe 是 srcdoc，相對網址照外層頁面解析，larch-preview 的 `/files/` 對到專案 JSON 所在的資料夾。
+
+## 背包（inventory）紙上的字色（Larch 技術支援 Obelisk 回覆，2026-11-04，版本 4b14ca2b）
+
+背包裡的字只從 `--inventory-text` 與 `--inventory-accent` 兩個變數算，沒有給道具卡或說明欄分開用的變數：
+說明欄的效果列是 `--inventory-text` 混 68% 透明，沒選中的 `item-keep` 小盾牌是 38%，持有數量和效果列的小圖示直接用 `--inventory-accent`。
+所以外框改深色、紙改淺色之後，紙上的這些字會跟著變淺，幾乎看不到。跟 html 的 `data-theme`（亮色／暗色）無關。
+
+官方建議兩個混用：外框的 `--inventory-surface`、`--inventory-text` 照樣在 `:scope` 設變數（要加 `!important` 才蓋得過背包設定）；
+紙上的字直接寫在 hook 上，例如 `[data-larch-ui="detail-effects"] li`、`[data-larch-ui="item-keep"]`、`[data-larch-ui="detail-count"]`，
+hook 不用 `!important`（系統會把介面 Skills 的選擇器權重墊高）。可以在 `:scope` 自己定一個 `--paper-ink` 給這幾個 hook 共用。
+實例：glitch-vn `larch/ui/inv/inventory.css`。
+

@@ -105,6 +105,13 @@ agy 剛註冊完的**第一個** session 可能看不到工具（快取還沒寫
 auto 時不看 `cgGalleryItems`）；`cgGalleryDownload` 預設開。改設定用 `larch_project_settings` 或 `PATCH .../settings`，
 不要用 `larch_replace_project` 或整份 PUT。
 
+**CG 條件的鍵是照網址算的，換收藏圖的網址條件就斷**（2026-11-04 實測，調查篇遊樂園玩完一款「離不開」）：
+條件變數寫成 `__larch_cg__:<鍵>`；收藏格沒填 `conditionKey` 時，鍵＝網址長度的 36 進位＋`-`＋網址 FNV-1a（32 位元）的 36 進位
+（拿換網址前的備份算過，27 個鍵全對）。素材改走 jsDelivr 這種換網址的動作做完，連接線上的舊鍵對不到任何一張，
+`== false` 永遠不成立，而且不會報錯：繞去解鎖 CG 的線走不進去，只剩接回自己那條線的插件卡會停在原地。
+修法：照條件自己帶的 `variableLabel`（就是收藏格標題）換成新網址算出來的鍵（glitch-vn 的 `larch/inv/fix_cg_keys.py`），
+換網址的工具做完要接著跑。
+
 REST 重新上架（真人官方回覆 fb-f8debc75，2026-10-30；Mana 先給的答案有一點是錯的，見最後）：
 `POST /api/agent/projects/:id/publish`，body 用 `description`、`publishedBoardIds`、`startBoardId`、`chapterMode`、
 `updateNote`（最多 2000 字，寫進更新紀錄，也放進追蹤者通知）、`version`（沒帶就用發布次數當版號）、`notifyFollowers`。
