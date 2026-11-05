@@ -178,3 +178,10 @@ hook 不用 `!important`（系統會把介面 Skills 的選擇器權重墊高）
 - 要保留特定字型，選擇器權重要比它高、再加 `!important`，例如 `.larch-project-font body .masthead { font-family: "Bodoni Moda", serif !important; }`。
 - Google Fonts 的 `@import` 在標題框裡沒有作用；拉丁展示字可以用 `fonts.googleapis.com/css2?...&text=<用到的字>` 抓子集，base64 內嵌成 `@font-face`（兩個字重約 35KB）。
 - 圖片用 `<img data-larch-asset="media:<id>">` 引用媒體庫，五張輪播都載得到；`titleCoverImage` 另外設一張當退路。
+
+## 收藏頁（gallery 部位）的標題列與 Esc（2026-11-05《卯時》實測）
+
+- 收藏頁的 `[data-larch-ui="screen-header"]` 自己有一層深色底（`rgba(17,18,22,.86)`），只改 `:scope` 的背景不會換到它；淺色主題要另外蓋 `background`，不然深字壓在深底上看不見。
+- 標題列裡是 `<small>COLLECTION</small><h1>CG 收藏</h1><p>N 個場景與回憶</p>`，文字沒有設定可改。要換名字可以 `font-size:0` 再用 `::after { content: "封面收藏" }` 補上。
+- 標題的 `button[data-larch-action="gallery"]` 在 `cgGalleryEnabled` 開著、`cgGallerySource: "picked"` 有圖時才可按。
+- `playerCloseButton: {mode:"hidden"}` 時 Esc 等於「離開遊戲」；預覽連結離開後會停在播放器內建的深色結束畫面，上面印的是**專案簡介**（`description`），所以簡介要保持是給玩家看的版本。
