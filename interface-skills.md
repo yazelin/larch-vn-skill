@@ -185,3 +185,8 @@ hook 不用 `!important`（系統會把介面 Skills 的選擇器權重墊高）
 - 標題列裡是 `<small>COLLECTION</small><h1>CG 收藏</h1><p>N 個場景與回憶</p>`，文字沒有設定可改。要換名字可以 `font-size:0` 再用 `::after { content: "封面收藏" }` 補上。
 - 標題的 `button[data-larch-action="gallery"]` 在 `cgGalleryEnabled` 開著、`cgGallerySource: "picked"` 有圖時才可按。
 - `playerCloseButton: {mode:"hidden"}` 時 Esc 等於「離開遊戲」；預覽連結離開後會停在播放器內建的深色結束畫面，上面印的是**專案簡介**（`description`），所以簡介要保持是給玩家看的版本。
+
+## 重新上架時沒帶介紹與封面會被換掉（2026-11-05《卯時》實測）
+
+- `larch_publish_game`／`POST /publish` 沒帶 `description` 時，市集介紹會換成當下的**專案簡介**；《卯時》1.2、1.3 兩次只帶 `version`＋`updateNote`，市集介紹就退回最早的專案簡介，封面也退回標題底圖（`titleCoverImage`）。
+- 做法：專案簡介和市集介紹用同一份文字（專案簡介上限約 1200 字，結束畫面也會顯示它，所以連結寫純網址、不要用 Markdown 連結），每次上架都帶 `description` 與 `coverUrl`。只改介紹或封面、不推新版本時用 `larch_update_listing`。
