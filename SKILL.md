@@ -205,6 +205,23 @@ curl -s "https://larch.ink/api/marketplace/<發佈id>?play=1" -o mk.json
 `characterLayers`（舊欄位，`{position,x,y,scale,opacity,flipX}`）編輯器某些地方還在讀，
 兩個都寫最安全。**不要用 `flipX`**：不對稱的記號（單邊耳飾、胸前徽章）會鏡射到另一邊。
 
+### 逐句走位與換表情（2026-11-04 預覽實測，《還沒送到的信》）
+
+- `dialogueLines[i].stage.actors[]` 每句寫一份完整的演員表。**同一個演員的 `id` 整張卡不要變**（不要把 slot 編進 id）：
+  只換 `url` 是直接換圖、不重播進場淡入；只換 `slot` 會在約 0.25 秒內滑到新位置；新加進來的演員播自己的 `enter`，
+  拿掉的演員播它身上的 `exit`（`fade`、`walkOutRight`、`arcOutRight`、`riseOut`）。句子帶 `speakerActorId` 指向說話的演員。
+- 市集上演出豐富的作品（《嫦娥今天不想上班》）503 句裡 371 句有自己的 stage，主角表情 10～18 張；「動效感」主要來自這個，特效反而用得少。
+- **改快照測試要改 `boards[].nodes`**：GET 專案回來的 JSON 頂層也有一份 `nodes`，播放器讀的是 `boards` 裡那份，只改頂層的會以為逐句 stage 沒作用。
+- **整張白板覆寫現在要帶 `If-Match`**（先 GET `/boards/<id>` 拿 ETag），沒帶回 428 Precondition Required（2026-11-04）。
+
+### 影片層 `stage.videos`：真的運鏡（2026-11-06 預覽實測）
+
+`stage.videos: [{id, mediaId, url, fill:true, videoLoop:false, volume:0}]` 鋪滿舞台播影片，寫在卡片層會跨句持續播，
+寫在 `dialogueLines[i].stage.videos` 只在那一句出現（下一句沒寫就拿掉）。MP4 走 `POST /media`（`mimeType:"video/mp4"`、`category:"scene"`）
+會轉成 Cloudflare Stream，`url` 是 `…cloudflarestream.com/<id>/iframe`，播放器用 iframe 播，所以讀不到 `currentTime`，
+驗證要隔幾秒截兩張圖比對。用途：把高解析 CG 用 ffmpeg `zoompan` 做成推近、橫搖、焦點轉移的短片，就有推軌搖鏡。
+客服 Mana 對「背景欄位放動態 WebP／MP4」回 `confident:false`（esc-03b693ff），影片層是它提到、我實測過的路。
+
 ### 背景與 BGM 可以逐句換，不必拆卡（2026-09-24 實測）
 
 `dialogueLines[i].background` 與 `dialogueLines[i].bgm`（配 `bgmVolume`／`bgmLoop`）播放器都認，
@@ -1323,6 +1340,7 @@ curl -s -H "Authorization: Bearer $KEY" \
   實測每次抓 0.6～1.7 秒，抓幾次都不會變快。repo 是公開的話，素材改指
   `https://cdn.jsdelivr.net/gh/<user>/<repo>@<commit>/<路徑>`：熱快取 0.1～0.2 秒，冷的第一次可能要 2～40 秒，推完要先把每個檔抓一次預熱。
   播放器的背景、立繪、`voiceUrl`、插件卡裡的圖都吃外部網址。**jsDelivr 的 gh 路由對中文檔名回 404**（GitHub raw 正常），素材檔名一律用 ASCII。
+  **tag 名不可用 `v` 開頭**：jsDelivr 把開頭的 v 當版本前綴拿掉，`@vn-e0d8…` 被讀成 `n-e0d8…`，整批回 404（GitHub raw 正常，2026-11-04《續》純劇情版）。每個 tag 仍要在 50 MB 套件上限內。
   做法見 larch-tangshi 的 `src/push.py`（`to_cdn`、`prewarm`）（2026-10-06）。
 - **插件卡 iframe 不能自動播聲音。** iframe 只有 `allow="microphone *; gamepad *"`、`sandbox="allow-scripts"`，
   沒有 autoplay，卡片一打開就 `new Audio(u).play()` 會拿到 NotAllowedError（玩家要在卡片裡點一下才行）。
