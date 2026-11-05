@@ -145,6 +145,21 @@ miniGame 卡的 iframe 也一樣。不要在介面或小遊戲裡放外部連結
 - **本機預覽要看還沒推上去的介面素材**，把 HTML 裡的 Pages 網址換成 `/files/…`：
   介面 iframe 是 srcdoc，相對網址照外層頁面解析，larch-preview 的 `/files/` 對到專案 JSON 所在的資料夾。
 
+## 實測：選項、選單、收藏三個 CSS 部位（2026-11-04，《還沒送到的信》）
+
+- **部位 CSS 裡只要有一行 `@import`，整個部位會被播放器丟掉**，畫面退回內建樣式，不報錯。所以這三個部位換不了字型，只能沿用播放器自己的 Noto Serif；要換字型的只有標題與對話框（它們是 iframe，可以 `@import` Google Fonts）。
+- 第一行要是 `/* @larch-params … */` 那段註解；在它前面插東西也一樣不被認。
+- `PUT /projects/<id>/interface` 這次**收了 gallery**（十月《雨幕》時不收），讀回一致。
+- 部位 CSS 裡的 `url()` 用 Larch R2 網址的圖可以載（信封選項實測）。
+
+## 專案字型（2026-11-04《還沒送到的信》實測，Larch 98c3feb5）
+
+- 欄位在 `settings.dialogueUi` 裡：`fontFamily: "custom"`、`customFontUrl`、`customFontName`。寫在 `settings` 頂層播放器不讀。
+- agent 的 `PATCH /projects/<id>/settings`（MCP `larch_project_settings`）不收這幾項，回 400。只能整份 `PUT /projects/<id>`：先 GET 存備份，照抄全專案只改 dialogueUi，帶 `If-Match: <_etag>`，寫完逐欄比對備份（media、characters、boards 都要一樣）。或請作者在對話編輯器右上「字體」選單上傳。
+- 字型檔用 `POST /projects/<id>/media` 傳上 R2 就好。播放器會改走 `larch.ink/api/media/proxy` 載入，並在介面部位裡提供 `var(--larch-project-font)`。
+- 不要在 title／dialogue 的 HTML 裡自己寫 `@font-face` 指向 R2：部位跑在 sandbox iframe，R2 沒有 CORS 標頭，字型會被擋（`document.fonts` 顯示 error）。CSS 部位的外部 `url()` 也會被擋。
+- 設完要 refresh share link，分享連結才換新版。
+
 ## 背包（inventory）紙上的字色（Larch 技術支援 Obelisk 回覆，2026-11-04，版本 4b14ca2b）
 
 背包裡的字只從 `--inventory-text` 與 `--inventory-accent` 兩個變數算，沒有給道具卡或說明欄分開用的變數：
@@ -156,3 +171,10 @@ miniGame 卡的 iframe 也一樣。不要在介面或小遊戲裡放外部連結
 hook 不用 `!important`（系統會把介面 Skills 的選擇器權重墊高）。可以在 `:scope` 自己定一個 `--paper-ink` 給這幾個 hook 共用。
 實例：glitch-vn `larch/ui/inv/inventory.css`。
 
+
+## 標題畫面的字型會被專案字型蓋掉（2026-11-05《卯時》實測）
+
+- 播放器在標題框裡注入一段樣式，其中有 `.larch-project-font body, .larch-project-font body * { font-family: var(--larch-project-font) !important }`。專案有設字型時，自訂標題裡每個元素的 `font-family` 都被蓋掉，連內嵌的 `@font-face` 也用不上（`document.fonts` 顯示已登記、從沒載入）。
+- 要保留特定字型，選擇器權重要比它高、再加 `!important`，例如 `.larch-project-font body .masthead { font-family: "Bodoni Moda", serif !important; }`。
+- Google Fonts 的 `@import` 在標題框裡沒有作用；拉丁展示字可以用 `fonts.googleapis.com/css2?...&text=<用到的字>` 抓子集，base64 內嵌成 `@font-face`（兩個字重約 35KB）。
+- 圖片用 `<img data-larch-asset="media:<id>">` 引用媒體庫，五張輪播都載得到；`titleCoverImage` 另外設一張當退路。
