@@ -584,6 +584,13 @@ resolution: {width:1920, height:1080}
   對話卡配第 0 行、**scene 卡配卡片層文字**(voiceUrl 寫在 data 層,播放器會播)。
   `setVariable` 卡回 400,而且**手動把 voiceUrl 寫進卡片層播放器也不播**——
   過場字卡要有聲只能改成對話卡。
+- **`emotion` 只認英文 id**(neutral/happy/…/calm,見下一條的 `emotions`)。帶中文——卡片 emotion 欄的
+  「笑」「公事」,連 `emotions` 裡 calm 的中文 label「平靜」也一樣——跟不帶回的檔逐位元相同,平台當成沒帶
+  (2026-11-06,六句對照)。拿卡片的 emotion 欄直接當參數送,現在剛好沒事;哪天平台開始認中文就會悄悄改語氣,
+  要情緒就自己對成英文 id,要跟舊檔一致就固定送空字串。2026-10-01 之前的版本這個參數完全沒作用,那時生的檔都是自然語氣。
+- 生成會在卡片層寫 `voiceEmotion`(空字串記成 `neutral`)、`voiceMode: "ai"`、`voiceModel`(如 `speech-2.8-hd`)、
+  `voiceName`、`voiceProvider: "minimax"`、`voiceDisclosure: true`,行的 `voiceUrl` 換成平台的 r2 網址。
+  build 推回去會把這幾欄洗掉;要拿 build 跟線上逐卡比對,先推回去再比。
 - `/api/agent/voices` **一次最多回 100 支**(`limit` 給再大也一樣),總共 335 支(2026-09-30),
   要用 `offset=100`、`offset=200`… 翻頁(`page` 沒有作用),或用 `language=Chinese (Mandarin)` 只看一種語言。
   回應另外帶 `total`、各語言的 `languages[].count`、可用的 `emotions`(neutral/happy/sad/angry/fearful/
