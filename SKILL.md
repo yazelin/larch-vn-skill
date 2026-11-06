@@ -304,6 +304,8 @@ curl -s "https://larch.ink/api/marketplace/<發佈id>?play=1" -o mk.json
 `transition`：`fade` `wipeLeft` `wipeRight` `blurCut` `flash` `irisIn` `fadeBlack` `none`（一般 260–420ms）
 `visualEffect`：`rain` `snow` `embers` `flash` `stars3d` `petals` `vignette` `speedLines` `fog` `shake` `none`
 
+**`text` 不能留空字串。** 場景卡的字一定會進對話框，空字串就是一個空白框，玩家要多點一下才往下走（2026-11-06 本機預覽實拍）。改台詞時要刪掉場景卡上的那句話，得改卡片結構，不能換成空字串。
+
 ### 旁白
 
 **旁白要做成一個角色**（沒有 `portraitUrl` 的角色，`role` 填「旁白」），
